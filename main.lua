@@ -8,7 +8,6 @@ function love.load()
   Timer = require("libs.timer")
   _constants = require("src.constants")
   _util = require("libs.util")
-  resources = require("libs.cargo").init("resources")
   Concord = require("libs.concord")
 
   _components = Concord.components
