@@ -15,10 +15,15 @@ function love.load()
   _worlds = Concord.worlds
   _assemblages = Concord.assemblages
 
-  Concord.loadComponents({"src.components.transform", "src.components.controlled"})
-  Concord.loadSystems({"src.systems.motion", "src.systems.input"})
-  Concord.loadWorlds({"src.worlds.game"})
-  -- Concord.loadAssemblages({})
+  Concord.loadComponents("src/components")
+  Concord.loadSystems("src/systems")
+  Concord.loadWorlds("src/worlds")
+  Concord.loadAssemblages("src/assemblages")
+
+  _assemblages.player:assemble(
+    Concord.entity(_worlds.game),
+    Vector(love.graphics.getWidth() / 2, love.graphics.getHeight() / 2)
+  )
 end
 
 function love.update(dt)
@@ -35,6 +40,10 @@ function love.draw()
   )
 
   _worlds.game:emit("draw")
+
+  if _DEBUG then
+    _util.l.render_stats()
+  end
 end
 
 function love.keypressed(key, _, _)
