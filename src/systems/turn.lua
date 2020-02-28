@@ -148,7 +148,7 @@ function turn:draw_ui()
   for i, text in ipairs(text_to_draw) do
     love.graphics.draw(
       text,
-      (love.graphics.getWidth() / 2) - (control_text_width / 2) + offset, --text:getWidth() / 2,
+      (love.graphics.getWidth() / 2) - (control_text_width / 2) + offset,
       love.graphics.getHeight() - text:getHeight() * 2
     )
     offset = offset + text:getWidth() + buffer_width

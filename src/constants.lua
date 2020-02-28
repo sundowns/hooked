@@ -7,5 +7,6 @@ return {
     ["none"] = true
   },
   DEFAULT_DIRECTION = "none",
-  DEFAULT_ACTION = "move"
+  DEFAULT_ACTION = "move",
+  TILE_SIZE = 8
 }
