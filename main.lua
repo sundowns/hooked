@@ -1,5 +1,5 @@
 local _worlds = nil -- should not have visbility of each other...
-_DEBUG = false
+_DEBUG = true
 
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 0)
@@ -24,25 +24,24 @@ function love.load()
     Concord.entity(_worlds.game),
     Vector(love.graphics.getWidth() / 2, love.graphics.getHeight() / 2)
   )
+
+  _worlds.game:emit("begin_turn")
 end
 
 function love.update(dt)
   _worlds.game:emit("update", dt)
 end
 
-welcome_text = love.graphics.newText(love.graphics.getFont(), "Time to make a game...")
 function love.draw()
-  -- Draw filler text
-  love.graphics.draw(
-    welcome_text,
-    love.graphics.getWidth() / 2 - welcome_text:getWidth() / 2,
-    love.graphics.getHeight() / 2 - welcome_text:getHeight() / 2
-  )
-
   _worlds.game:emit("draw")
 
+  _worlds.game:emit("draw_ui")
+
   if _DEBUG then
-    _util.l.render_stats()
+    love.graphics.setColor(1, 1, 0)
+    _worlds.game:emit("draw_debug")
+    _util.l.render_stats(0, love.graphics.getHeight() / 2)
+    _util.l.reset_colour()
   end
 end
 
@@ -50,7 +49,7 @@ function love.keypressed(key, _, _)
   if key == "r" then
     love.event.quit("restart")
   elseif key == "escape" then
-    love.event.quit()
+    -- love.event.quit()
   elseif key == "f1" then
     _DEBUG = not _DEBUG
   end
