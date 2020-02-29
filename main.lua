@@ -6,9 +6,10 @@ function love.load()
   -- Globals
   Vector = require("libs.vector")
   Timer = require("libs.timer")
-  _constants = require("src.constants")
   _util = require("libs.util")
   Concord = require("libs.concord")
+  _constants = require("src.constants")
+  _sprites = require("src.sprites")
 
   _components = Concord.components
   _systems = Concord.systems
@@ -20,11 +21,14 @@ function love.load()
   Concord.loadWorlds("src/worlds")
   Concord.loadAssemblages("src/assemblages")
 
-  _assemblages.player:assemble(
-    Concord.entity(_worlds.game),
-    Vector(love.graphics.getWidth() / 2, love.graphics.getHeight() / 2)
-  )
+  local test_room = {
+    {1, 1, 1, 1},
+    {1, 2, 2, 1},
+    {1, 2, 2, 1},
+    {1, 1, 1, 1}
+  }
 
+  _worlds.game:emit("load_room", test_room)
   _worlds.game:emit("begin_turn")
 end
 
@@ -73,5 +77,5 @@ function love.mousereleased(x, y, button, _, _)
 end
 
 function love.resize(w, h)
-  _worlds.world:emit("resize", w, h)
+  _worlds.game:emit("resize", w, h)
 end
