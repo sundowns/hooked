@@ -71,13 +71,21 @@ function room:draw()
   end
 
   for i = 1, self.DRAWABLE.size do
-    local player = self.DRAWABLE:get(i)
-    local position = player:get(_components.grid).position
-    local sprite = player:get(_components.sprite)
-
+    local e = self.DRAWABLE:get(i)
+    local position = e:get(_components.grid).position
+    local sprite = e:get(_components.sprite)
+    local quad = sprite.quads[#sprite.quads]
+    if sprite.is_health_driven then
+      print("ayo")
+      local health = e:get(_components.health)
+      quad = sprite.quads[health.current]
+    end
+    -- if health then
+    --   quad = sprite.quads[]
+    -- end
     love.graphics.draw(
       sprite.sheet,
-      sprite.quads[5], -- TODO: use health component to determine sprite
+      quad, -- TODO: use health component to determine sprite
       self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
       self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale),
       0,

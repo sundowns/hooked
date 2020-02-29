@@ -22,7 +22,8 @@ return Concord.assemblage(
       [4] = _sprites.build_quad(1, 2),
       [3] = _sprites.build_quad(2, 2),
       [2] = _sprites.build_quad(3, 2),
-      [1] = _sprites.build_quad(4, 2)
+      [1] = _sprites.build_quad(4, 2),
+      [0] = _sprites.build_quad(5, 2)
     }
 
     e:give(_components.grid, origin):give(
@@ -35,7 +36,8 @@ return Concord.assemblage(
     ):give(_components.control, bindings):give(_components.hook_thrower):give(
       _components.sprite,
       _sprites.sheet,
-      player_sprite_quads
-    )
+      player_sprite_quads,
+      true
+    ):give(_components.health, 5)
   end
 )
