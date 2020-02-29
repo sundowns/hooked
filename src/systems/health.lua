@@ -1,21 +1,21 @@
 local health = Concord.system({_components.health, _components.control, "PLAYER"})
 function health:init()
   -- -- a black/white mask image: black pixels will mask, white pixels will pass.
-  -- local mask = love.graphics.newImage("resources/")
-  -- local mask_shader =
-  --   love.graphics.newShader [[
-  --     vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-  --     if (Texel(texture, texture_coords).rgb == vec3(0.0)) {
-  --       // a discarded pixel wont be applied as the stencil.
-  --       discard;
-  --     }
-  --     return vec4(1.0);
-  -- }]]
-  -- self.stencil_fn = function()
-  --   love.graphics.setShader(mask_shader)
-  --   love.graphics.draw(mask, 0, 0)
-  --   love.graphics.setShader()
-  -- end
+  local mask = love.graphics.newImage("resources/health_mask.png")
+  local mask_shader =
+    love.graphics.newShader [[
+      vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
+      if (Texel(texture, texture_coords).rgb == vec3(0.0)) {
+        // a discarded pixel wont be applied as the stencil.
+        discard;
+      }
+      return vec4(1.0);
+  }]]
+  self.stencil_fn = function()
+    love.graphics.setShader(mask_shader)
+    love.graphics.draw(mask, 0, 0)
+    love.graphics.setShader()
+  end
 end
 
 function health:reduce()
@@ -34,10 +34,10 @@ function health:draw_debug()
 end
 
 function health:draw_ui()
-  -- love.graphics.stencil(myStencilFunction, "replace", 1)
-  -- love.graphics.setStencilTest("greater", 0)
-  -- love.graphics.rectangle("fill", 0, 0, 256, 256)
-  -- love.graphics.setStencilTest()
+  love.graphics.stencil(self.stencil_fn, "replace", 1)
+  love.graphics.setStencilTest("greater", 0)
+  love.graphics.rectangle("fill", 100, 0, 256, 256)
+  love.graphics.setStencilTest()
 end
 
 return health

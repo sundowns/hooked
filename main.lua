@@ -3,6 +3,7 @@ _DEBUG = true
 
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 4)
+  love.graphics.setBackgroundColor(0.1, 0.1, 0.1)
   -- Globals
   Vector = require("libs.vector")
   Timer = require("libs.timer")
