@@ -13,7 +13,7 @@ function enemies:begin_phase(phase)
   end
 
   self.timer:after(
-    1,
+    0.5,
     function()
       self:getWorld():emit("end_phase")
     end

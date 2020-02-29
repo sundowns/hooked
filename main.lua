@@ -28,6 +28,7 @@ function love.load()
     {1, 2, 2, 1},
     {1, 1, 1, 1}
   }
+  print(test_room[1])
 
   _worlds.game:emit("load_room", test_room)
   _worlds.game:emit("begin_turn")

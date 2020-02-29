@@ -1,4 +1,5 @@
-local room = Concord.system({_components.grid, _components.sprite, "DRAWABLE"})
+local room =
+  Concord.system({_components.grid, _components.sprite, "DRAWABLE"}, {_components.control, _components.grid, "PLAYER"})
 
 local _TILE_LOOKUP = {
   [1] = "dirt",
@@ -11,11 +12,13 @@ local _TILE_LOOKUP = {
 local _TILE_DICTIONARY = {
   [_TILE_LOOKUP[1]] = {
     name = "dirt",
-    quad = _sprites.build_quad(0, 0)
+    quad = _sprites.build_quad(0, 0),
+    walkable = true
   },
   [_TILE_LOOKUP[2]] = {
     name = "wall",
-    quad = _sprites.build_quad(1, 0)
+    quad = _sprites.build_quad(1, 0),
+    walkable = false
   }
 }
 
@@ -46,6 +49,35 @@ end
 
 function room:update(dt)
   -- self.timer:update(dt)
+end
+
+function room:is_empty(x, y)
+  if not self.grid[y + 1] or not self.grid[y + 1][x + 1] then
+    return false
+  end
+  local tile = lookup_tile(self.grid[y + 1][x + 1])
+  return tile.walkable
+end
+
+function room:attempt_player_move(direction)
+  local player = self.PLAYER:get(1)
+  local grid = player:get(_components.grid)
+  local offset = Vector(0, 0)
+  if direction == "right" then
+    offset = Vector(1, 0)
+  elseif direction == "down" then
+    offset = Vector(0, 1)
+  elseif direction == "left" then
+    offset = Vector(-1, 0)
+  elseif direction == "up" then
+    offset = Vector(0, -1)
+  end
+  if self:is_empty(grid.position.x + offset.x, grid.position.y + offset.y) then
+    grid:translate(offset.x, offset.y)
+    self:getWorld():emit("end_phase")
+  else
+    -- TODO: emit some sort of warning/error sound/message
+  end
 end
 
 function room:draw()

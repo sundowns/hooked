@@ -25,7 +25,7 @@ function hook:begin_phase(phase)
   else
     print("hook is out, lets move it!")
     self.timer:after(
-      1,
+      0.5,
       function()
         self:getWorld():emit("end_phase")
       end

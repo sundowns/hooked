@@ -60,8 +60,7 @@ function turn:trigger_turn_end(e)
           selection:prompt_pass()
         end
       else
-        self:getWorld():emit("player_moved", direction)
-        self:end_phase()
+        self:getWorld():emit("attempt_player_move", direction)
       end
     elseif action == "hook" and direction ~= "none" then
       local hook_thrower = e:get(_components.hook_thrower)
