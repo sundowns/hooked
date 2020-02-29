@@ -2,7 +2,7 @@ local _worlds = nil -- should not have visbility of each other...
 _DEBUG = true
 
 function love.load()
-  love.graphics.setDefaultFilter("nearest", "nearest", 0)
+  love.graphics.setDefaultFilter("nearest", "nearest", 4)
   -- Globals
   Vector = require("libs.vector")
   Timer = require("libs.timer")
@@ -41,6 +41,9 @@ function love.draw()
     love.graphics.setColor(1, 1, 0)
     _worlds.game:emit("draw_debug")
     _util.l.render_stats(0, love.graphics.getHeight() / 2)
+
+    -- marker for screen centre
+    love.graphics.circle("fill", love.graphics.getWidth() / 2, love.graphics.getHeight() / 2, 2)
     _util.l.reset_colour()
   end
 end

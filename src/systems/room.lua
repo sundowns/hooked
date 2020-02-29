@@ -1,5 +1,7 @@
 local room = Concord.system({})
 
+local tile_map = love.graphics.newImage("resources/tilemap.png")
+
 -- x, y in grid coords, not pixels
 function build_quad(x, y)
   return love.graphics.newQuad(
@@ -7,8 +9,8 @@ function build_quad(x, y)
     y * _constants.TILE_SIZE,
     _constants.TILE_SIZE,
     _constants.TILE_SIZE,
-    1,
-    1
+    tile_map:getWidth(),
+    tile_map:getHeight()
   )
 end
 
@@ -32,7 +34,7 @@ local _TILE_DICTIONARY = {
   }
 }
 
-function lookup_tile(id)
+function room:lookup_tile(id)
   return _TILE_DICTIONARY[_TILE_LOOKUP[id]]
 end
 
@@ -40,7 +42,7 @@ function room:init()
   -- self.timer = Timer.new()
   self.grid = {}
   self.grid_origin = Vector(0, 0)
-  self.tile_map = love.graphics.newImage("resources/tilemap.png")
+  self.tile_scale = 8
 
   local test_room = {
     {1, 1, 1, 1},
@@ -59,8 +61,8 @@ function room:load(layout_grid)
   self.grid = layout_grid
   self.grid_origin =
     Vector(
-    (love.graphics.getWidth() / 2) - (cols / 2 * _constants.TILE_SIZE),
-    (love.graphics.getHeight() / 2) - (rows / 2 * _constants.TILE_SIZE)
+    (love.graphics.getWidth() / 2) - (cols / 2 * _constants.TILE_SIZE * self.tile_scale),
+    (love.graphics.getHeight() / 2) - (rows / 2 * _constants.TILE_SIZE * self.tile_scale)
   )
   print(self.grid_origin)
 end
@@ -75,13 +77,16 @@ function room:draw()
   if self.grid then
     for y, row in ipairs(self.grid) do
       for x, tile_id in ipairs(row) do
-        local tile = lookup_tile(tile_id)
+        local tile = self:lookup_tile(tile_id)
 
         love.graphics.draw(
-          self.tile_map,
+          tile_map,
           tile.quad,
-          self.grid_origin.x + x * _constants.TILE_SIZE,
-          self.grid_origin.y + x * _constants.TILE_SIZE
+          self.grid_origin.x + ((x - 1) * _constants.TILE_SIZE * self.tile_scale),
+          self.grid_origin.y + ((y - 1) * _constants.TILE_SIZE * self.tile_scale),
+          0,
+          self.tile_scale,
+          self.tile_scale
         )
       end
     end
