@@ -1,4 +1,4 @@
-local _spritesheet = love.graphics.newImage("resources/spritesheet.png")
+local _spritesheet = love.graphics.newImage("resources/sprites/spritesheet.png")
 
 local build_quad = function(x, y)
   return love.graphics.newQuad(

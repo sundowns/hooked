@@ -76,16 +76,12 @@ function room:draw()
     local sprite = e:get(_components.sprite)
     local quad = sprite.quads[#sprite.quads]
     if sprite.is_health_driven then
-      print("ayo")
       local health = e:get(_components.health)
       quad = sprite.quads[health.current]
     end
-    -- if health then
-    --   quad = sprite.quads[]
-    -- end
     love.graphics.draw(
       sprite.sheet,
-      quad, -- TODO: use health component to determine sprite
+      quad,
       self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
       self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale),
       0,
