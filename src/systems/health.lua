@@ -1,8 +1,8 @@
 local health = Concord.system({_components.health, _components.control, "PLAYER"})
 function health:init()
   -- -- a black/white mask image: black pixels will mask, white pixels will pass.
-  local mask = love.graphics.newImage("resources/health_mask.png")
-  local mask_shader =
+  mask = love.graphics.newImage("resources/health_mask.png")
+  mask_shader =
     love.graphics.newShader [[
       vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
       if (Texel(texture, texture_coords).rgb == vec3(0.0)) {
@@ -11,11 +11,22 @@ function health:init()
       }
       return vec4(1.0);
   }]]
-  self.stencil_fn = function()
-    love.graphics.setShader(mask_shader)
-    love.graphics.draw(mask, 0, 0)
-    love.graphics.setShader()
+  self.mask_width = 256
+  self.stencil_fn_gen = function(x, y, scale)
+    return function()
+      love.graphics.setShader(mask_shader)
+      love.graphics.draw(mask, x, y, 0, scale or 1, scale or 1)
+      love.graphics.setShader()
+    end
   end
+  self.mask_scale = 0.5
+  self.health_colours = {
+    {0.443, 0.09, 0.09},
+    {0.965, 0.20, 0.20},
+    {0.965, 0.20, 0.388},
+    {0.706, 0.20, 0.965},
+    {0.278, 0.20, 0.965}
+  }
 end
 
 function health:reduce()
@@ -30,13 +41,34 @@ end
 function health:draw_debug()
   local player = self.PLAYER:get(1)
   local health = player:get(_components.health)
-  love.graphics.print(health.current .. "/" .. health.maximum, love.graphics.getWidth() / 2, 0)
+  love.graphics.print(health.current .. "/" .. health.maximum, love.graphics.getWidth() * 0.87, 0)
 end
 
 function health:draw_ui()
-  love.graphics.stencil(self.stencil_fn, "replace", 1)
+  local player = self.PLAYER:get(1)
+  local health = player:get(_components.health)
+
+  local x, y = (love.graphics.getWidth() - self.mask_width * self.mask_scale), 0
+  local health_chunk_height = self.mask_width * self.mask_scale / health.maximum
+
+  love.graphics.stencil(self.stencil_fn_gen(x, y, self.mask_scale), "replace", 1)
   love.graphics.setStencilTest("greater", 0)
-  love.graphics.rectangle("fill", 100, 0, 256, 256)
+  -- draw 5 equal height rectangles in each health colour
+
+  for i = health.maximum, 1, -1 do
+    if i <= health.current then
+      love.graphics.setColor(self.health_colours[i])
+      love.graphics.rectangle(
+        "fill",
+        x,
+        y + (i - 1) * health_chunk_height,
+        self.mask_width * self.mask_scale,
+        health_chunk_height
+      )
+    end
+  end
+
+  _util.l.reset_colour()
   love.graphics.setStencilTest()
 end
 
