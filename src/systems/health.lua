@@ -22,7 +22,6 @@ function health:init()
   self.mask_scale = 0.5
   self.health_colours = {
     {0.443, 0.09, 0.09},
-    {0.965, 0.20, 0.20},
     {0.965, 0.20, 0.388},
     {0.706, 0.20, 0.965},
     {0.278, 0.20, 0.965}
@@ -33,6 +32,7 @@ function health:reduce()
   local player = self.PLAYER:get(1)
   local health = player:get(_components.health)
   health:reduce(1)
+  self:getWorld():emit("shake", 0.5, 0.5)
   if health.current <= 0 then
     print("ur dead dude") -- TODO:
   end
@@ -48,20 +48,22 @@ function health:draw_ui()
   local player = self.PLAYER:get(1)
   local health = player:get(_components.health)
 
-  local x, y = (love.graphics.getWidth() - self.mask_width * self.mask_scale), 0
   local health_chunk_height = self.mask_width * self.mask_scale / health.maximum
+  local x, y = (love.graphics.getWidth() - self.mask_width * self.mask_scale), 0
 
   love.graphics.stencil(self.stencil_fn_gen(x, y, self.mask_scale), "replace", 1)
   love.graphics.setStencilTest("greater", 0)
-  -- draw 5 equal height rectangles in each health colour
+  -- draw 4 equal height rectangles in each health colour
 
-  for i = health.maximum, 1, -1 do
+  love.graphics.setColor(0.15, 0.15, 0.15)
+  love.graphics.rectangle("fill", x, y, self.mask_width * self.mask_scale, self.mask_width * self.mask_scale)
+  for i = 1, health.maximum do
     if i <= health.current then
       love.graphics.setColor(self.health_colours[i])
       love.graphics.rectangle(
         "fill",
         x,
-        y + (i - 1) * health_chunk_height,
+        y + ((health.maximum - i) * health_chunk_height),
         self.mask_width * self.mask_scale,
         health_chunk_height
       )

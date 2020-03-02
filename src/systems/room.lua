@@ -31,6 +31,12 @@ function room:init()
   self.grid = {}
   self.grid_origin = Vector(0, 0)
   self.tile_scale = 8
+
+  -- Screen shake vars
+  self.screen_shaking = false
+  self.shake_duration = 0
+  self.shake_count = 0
+  self.shake_magnitude = 2
 end
 
 function room:load_room(layout_grid)
@@ -47,8 +53,26 @@ function room:load_room(layout_grid)
   _assemblages.player:assemble(Concord.entity(self:getWorld()), Vector(0, 0))
 end
 
+function room:shake(duration, magnitude)
+  if self.screen_shaking then
+    return
+  end
+  self.screen_shaking = true
+  self.shake_duration = duration
+  self.shake_magnitude = magnitude
+end
+
 function room:update(dt)
   -- self.timer:update(dt)
+  if self.screen_shaking then
+    if self.shake_duration > self.shake_count then
+      self.shake_count = self.shake_count + dt
+    else
+      self.screen_shaking = false
+      self.shake_count = 0
+      self.shake_duration = 0
+    end
+  end
 end
 
 function room:is_empty(x, y)
@@ -82,6 +106,13 @@ end
 
 function room:draw()
   _util.l.reset_colour()
+
+  if self.screen_shaking then
+    love.graphics.push()
+    local dx = love.math.random(-self.shake_magnitude, self.shake_magnitude)
+    local dy = love.math.random(-self.shake_magnitude, self.shake_magnitude)
+    love.graphics.translate(dx / self.shake_count, dy / self.shake_count)
+  end
 
   -- draw the grid
   if self.grid then
@@ -120,6 +151,10 @@ function room:draw()
       self.tile_scale,
       self.tile_scale
     )
+  end
+
+  if self.screen_shaking then
+    love.graphics.pop()
   end
 end
 
