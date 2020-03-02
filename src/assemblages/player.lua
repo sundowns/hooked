@@ -31,7 +31,7 @@ return Concord.assemblage(
       ["hook"] = _sprites.build_quad(2, 1)
     }
 
-    e:give(_components.grid, origin):give(
+    e:give(_components.grid, origin, true):give(
       _components.selection,
       {
         ["move"] = true,

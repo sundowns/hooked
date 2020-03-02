@@ -1,8 +1,9 @@
 local grid =
   Concord.component(
-  function(e, position)
+  function(e, position, is_occupier)
     assert(position and position.x and position.y, "Grid component received a non-vector position on creation")
     e.position = position
+    e.is_occupier = is_occupier or false
   end
 )
 

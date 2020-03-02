@@ -60,7 +60,7 @@ function turn:trigger_turn_end(e)
           selection:prompt_pass()
         end
       else
-        self:getWorld():emit("attempt_player_move", direction)
+        self:getWorld():emit("attempt_entity_move", e, direction)
       end
     elseif action == "hook" and direction ~= "none" then
       local hook_thrower = e:get(_components.hook_thrower)
@@ -116,7 +116,10 @@ function turn:make_selection(action, e)
   local selection = e:get(_components.selection)
   local action = string.lower(action)
   if selection.all_actions[action] then
-    selection:set_action(action)
+    local hook_thrower = e:get(_components.hook_thrower)
+    if action ~= "hook" or hook_thrower.can_throw then
+      selection:set_action(action)
+    end
   elseif selection.all_directions[action] then
     selection:set_direction(action)
   end

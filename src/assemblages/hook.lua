@@ -18,7 +18,7 @@ return Concord.assemblage(
       [0] = _sprites.build_quad(4, 4)
     }
 
-    e:give(_components.grid, origin):give(_components.sprite, _sprites.sheet, head_sprite_quads, true):give(
+    e:give(_components.grid, origin, true):give(_components.sprite, _sprites.sheet, head_sprite_quads, true):give(
       _components.chain,
       3,
       _sprites.sheet,

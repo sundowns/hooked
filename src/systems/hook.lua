@@ -1,4 +1,21 @@
-local hook = Concord.system({_components.control, _components.hook_thrower, "PLAYER"})
+local hook =
+  Concord.system(
+  {_components.control, _components.hook_thrower, _components.grid, "PLAYER"},
+  {_components.grid, _components.grid, _components.chain, "HOOK"}
+)
+
+local _DIRECTION_OFFSETS = {
+  ["right"] = Vector(1, 0),
+  ["down"] = Vector(0, 1),
+  ["left"] = Vector(-1, 0),
+  ["up"] = Vector(0, -1)
+}
+
+function direction_to_offset(direction)
+  assert(_DIRECTION_OFFSETS[direction], "'direction_to_offset' received invalid direction")
+  return _DIRECTION_OFFSETS[direction]:clone()
+end
+
 function hook:init()
   self.timer = Timer.new()
 end
@@ -7,7 +24,11 @@ function hook:throw_hook(direction)
   local player = self.PLAYER:get(1)
   local hook_thrower = player:get(_components.hook_thrower)
   hook_thrower:throw(direction)
-  -- TODO: spawn the actual hook entity
+
+  _assemblages.hook:assemble(
+    Concord.entity(self:getWorld()),
+    player:get(_components.grid).position + direction_to_offset(direction)
+  )
 end
 
 function hook:update(dt)

@@ -22,9 +22,11 @@ function love.load()
   Concord.loadWorlds("src/worlds")
   Concord.loadAssemblages("src/assemblages")
 
+  -- Valid rooms must:
+  --  * have one '0' tile to spawn the player
   local test_room = {
     {1, 1, 1, 2},
-    {1, 1, 1, 1},
+    {1, 0, 1, 1},
     {1, 1, 1, 1},
     {2, 1, 1, 2}
   }

@@ -1,7 +1,12 @@
 local room =
-  Concord.system({_components.grid, _components.sprite, "DRAWABLE"}, {_components.control, _components.grid, "PLAYER"})
+  Concord.system(
+  {_components.grid, "ALL"},
+  {_components.grid, _components.sprite, "DRAWABLE"},
+  {_components.control, _components.grid, "PLAYER"}
+)
 
 local _TILE_LOOKUP = {
+  [0] = "dirt", -- spawn tile
   [1] = "dirt",
   [2] = "wall",
   [10] = "door_orange",
@@ -10,6 +15,11 @@ local _TILE_LOOKUP = {
 }
 -- can store individual tile data
 local _TILE_DICTIONARY = {
+  [_TILE_LOOKUP[0]] = {
+    name = "spawn",
+    quad = _sprites.build_quad(0, 0),
+    walkable = true
+  },
   [_TILE_LOOKUP[1]] = {
     name = "dirt",
     quad = _sprites.build_quad(0, 0),
@@ -55,6 +65,7 @@ function room:init()
   self.timer = Timer.new()
   self.grid = {}
   self.grid_origin = Vector(0, 0)
+  self.occupancy_map = {}
   self.tile_scale = 8
   self.selector_scale = 4
 
@@ -63,12 +74,38 @@ function room:init()
   self.shake_duration = 0
   self.shake_count = 0
   self.shake_magnitude = 2
+
+  self.ALL.onEntityAdded = function(pool, e)
+    local grid = e:get(_components.grid)
+    if grid.is_occupier then
+      self:set_occupancy(grid.position.x, grid.position.y, true)
+    end
+  end
+
+  self.ALL.onEntityRemoved = function(pool, e)
+    local grid = e:get(_components.grid)
+    if grid.is_occupier then
+      self:set_occupancy(grid.position.x, grid.position.y, false)
+    end
+  end
+end
+
+function room:set_occupancy(x, y, is_occupied)
+  assert(is_occupied ~= nil, "no bueno")
+  self.occupancy_map[y + 1][x + 1] = is_occupied
+end
+
+function room:is_occupied(x, y)
+  if not self.occupancy_map[y + 1] or not self.occupancy_map[y + 1][x + 1] then
+    return false
+  end
+  return self.occupancy_map[y + 1][x + 1]
 end
 
 function room:load_room(layout_grid)
   local rows = #layout_grid
   local cols = #layout_grid[1]
-  print(rows .. " x " .. cols)
+  print("loading room: " .. rows .. "x" .. cols)
   self.grid = layout_grid
   self.grid_origin =
     Vector(
@@ -76,7 +113,18 @@ function room:load_room(layout_grid)
     (love.graphics.getHeight() / 2) - (rows / 2 * _constants.TILE_SIZE * self.tile_scale)
   )
 
-  _assemblages.player:assemble(Concord.entity(self:getWorld()), Vector(1, 1))
+  self.occupancy_map = {}
+  local player_spawn = Vector(0, 0)
+  for y, row in ipairs(self.grid) do
+    self.occupancy_map[y] = {}
+    for x, tile_id in ipairs(row) do
+      self:set_occupancy(x - 1, y - 1, false)
+      if tile_id == 0 then
+        player_spawn = Vector(x - 1, y - 1)
+      end
+    end
+  end
+  _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn)
 end
 
 function room:shake(duration, magnitude)
@@ -105,28 +153,31 @@ function room:is_empty(position)
   if not self.grid[position.y + 1] or not self.grid[position.y + 1][position.x + 1] then
     return false
   end
+  if self:is_occupied(position.x, position.y) then
+    return false -- something is here already
+  end
   local tile = lookup_tile(self.grid[position.y + 1][position.x + 1])
   return tile.walkable
 end
 
-function room:attempt_player_move(direction)
-  local player = self.PLAYER:get(1)
-  local grid = player:get(_components.grid)
+function room:attempt_entity_move(e, direction)
+  if not e:has(_components.grid) then
+    return
+  end
+  local grid = e:get(_components.grid)
   if self:validate_direction(grid.position, direction) then
+    local old_position = grid.position:clone()
     grid:translate(direction_to_offset(direction))
-    -- grid:translate(offset.x, offset.y)
+    if grid.is_occupier then
+      -- empty current tile, occupy new one
+      self:set_occupancy(old_position.x, old_position.y, false)
+      self:set_occupancy(grid.position.x, grid.position.y, true)
+    end
     self:getWorld():emit("shake", 0.15, 0.5)
     self:getWorld():emit("end_phase")
   else
     print("invalid move")
   end
-  -- local offset = direction_to_offset(direction)
-  -- if self:is_empty(grid.position + offset) then
-  --   -- TODO: we need to use transforms with absolute positions to tween position properly
-  --   -- self.timer:tween(0.15, grid, {position = Vector(grid.position.x + offset.x, grid.position.y + offset.y)})
-  -- else
-  --   -- TODO: emit some sort of warning/error sound/message
-  -- end
 end
 
 function room:draw()
@@ -164,8 +215,7 @@ function room:draw()
     local sprite = e:get(_components.sprite)
     local quad = sprite.quads[#sprite.quads]
     if sprite.is_health_driven then
-      local health = e:get(_components.health)
-      quad = sprite.quads[health.current]
+      quad = sprite.quads[self.PLAYER:get(1):get(_components.health).current]
     end
     love.graphics.draw(
       sprite.sheet,
@@ -227,6 +277,30 @@ function room:draw_arrow_sprite(sprite_data, position, rotation, draw_type)
     _constants.TILE_SIZE * self.selector_scale / 8,
     _constants.TILE_SIZE * self.selector_scale / 8
   )
+  _util.l.reset_colour()
+end
+
+function room:draw_debug()
+  love.graphics.setColor(0, 1, 0)
+  love.graphics.circle("fill", self.grid_origin.x, self.grid_origin.y, 2)
+
+  love.graphics.setColor(1, 0, 0)
+  -- draw the occupancy map
+  for y, row in ipairs(self.occupancy_map) do
+    for x, is_occupied in ipairs(row) do
+      if is_occupied then
+        love.graphics.circle(
+          "fill",
+          self.grid_origin.x + ((x - 1) * _constants.TILE_SIZE * self.tile_scale) +
+            (_constants.TILE_SIZE / 2 * self.tile_scale),
+          self.grid_origin.y + ((y - 1) * _constants.TILE_SIZE * self.tile_scale) +
+            (_constants.TILE_SIZE / 2 * self.tile_scale),
+          5
+        )
+      end
+    end
+  end
+
   _util.l.reset_colour()
 end
 
