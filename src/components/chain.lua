@@ -10,16 +10,21 @@ local chain =
   end
 )
 
-function chain:add_link(grid_position, direction)
+function chain:add_link_to_front(grid_position, direction)
   assert(grid_position and grid_position.x and grid_position.y, "received non-vector position for new chain link")
-  assert(#self.links < self.capacity, "Attempted to add link to full chain")
-  direction = direction
-  table.insert(
-    self.links,
-    {
-      position = grid_position,
-      direction = direction
-    }
+  assert(#self.links < self.max_length, "Attempted to add link to full chain")
+  self.links[#self.links + 1] = {
+    position = grid_position,
+    direction = direction
+  }
+end
+
+function chain:add_link_to_back(grid_position, direction)
+  assert(grid_position and grid_position.x and grid_position.y, "received non-vector position for new chain link")
+  assert(#self.links < self.max_length, "Attempted to add link to full chain")
+
+  assert(
+    "I haven't implemented this, next challenge!!!! (need to add at the LOWEST index, like a 2-way linked list dealio)"
   )
 end
 
@@ -29,6 +34,10 @@ end
 
 function chain:is_full()
   return #self.links == self.max_length
+end
+
+function chain:consume_last()
+  table.remove(self.links)
 end
 
 return chain

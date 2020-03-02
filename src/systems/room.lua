@@ -160,7 +160,7 @@ function room:is_empty(position)
   return tile.walkable
 end
 
-function room:attempt_entity_move(e, direction)
+function room:attempt_entity_move(e, direction, is_player)
   if not e:has(_components.grid) then
     return
   end
@@ -174,9 +174,29 @@ function room:attempt_entity_move(e, direction)
       self:set_occupancy(grid.position.x, grid.position.y, true)
     end
     self:getWorld():emit("shake", 0.15, 0.5)
-    self:getWorld():emit("end_phase")
+    if is_player then
+      -- check if chain is out, if so remove last link
+      local hook_thrower = e:get(_components.hook_thrower)
+      if not hook_thrower.can_throw then
+        self:getWorld():emit("player_with_hook_moved", old_position, direction)
+      end
+      self:getWorld():emit("end_phase")
+    end
   else
-    print("invalid move")
+    --TODO: invalid move SFX
+    self:getWorld():emit("invalid_entity_move", e)
+  end
+end
+
+function room:attempt_hook_throw(e, direction)
+  if not e:has(_components.grid) then
+    return
+  end
+  local grid = e:get(_components.grid)
+  if self:validate_direction(grid.position, direction) then
+    self:getWorld():emit("throw_hook", direction)
+  else
+    print("invalid hook throw") --TODO: invalid move SFX
   end
 end
 

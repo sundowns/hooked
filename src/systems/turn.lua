@@ -37,7 +37,7 @@ function turn:action_pressed(action, e)
   end
   if action == "end_turn" then
     if e:get(_components.selection).action then
-      self:trigger_turn_end(e)
+      self:end_player_phase(e)
     end
   elseif action == "back" then
     e:get(_components.selection):reset()
@@ -46,7 +46,7 @@ function turn:action_pressed(action, e)
   end
 end
 
-function turn:trigger_turn_end(e)
+function turn:end_player_phase(e)
   local selection = e:get(_components.selection)
   local action = selection.action
   local direction = selection.direction
@@ -60,13 +60,12 @@ function turn:trigger_turn_end(e)
           selection:prompt_pass()
         end
       else
-        self:getWorld():emit("attempt_entity_move", e, direction)
+        self:getWorld():emit("attempt_entity_move", e, direction, true)
       end
     elseif action == "hook" and direction ~= "none" then
       local hook_thrower = e:get(_components.hook_thrower)
       if hook_thrower.can_throw then
-        self:getWorld():emit("throw_hook", direction)
-        self:end_phase()
+        self:getWorld():emit("attempt_hook_throw", e, direction)
       else
         -- TODO: some sort of error/warning about 1 hook at a time
         print("hook is already out :c!")
