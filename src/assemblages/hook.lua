@@ -23,6 +23,6 @@ return Concord.assemblage(
       3,
       _sprites.sheet,
       chain_sprite_quads
-    )
+    ):give(_components.head)
   end
 )

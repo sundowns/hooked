@@ -180,10 +180,10 @@ function room:draw()
     if e:has(_components.selection) then
       local selection = e:get(_components.selection)
       if selection.direction_sprite then
-        self:draw_directional_arrow(position, selection.direction_sprite, "right", selection.direction)
-        self:draw_directional_arrow(position, selection.direction_sprite, "down", selection.direction)
-        self:draw_directional_arrow(position, selection.direction_sprite, "left", selection.direction)
-        self:draw_directional_arrow(position, selection.direction_sprite, "up", selection.direction)
+        self:draw_directional_arrow(position, selection, "right")
+        self:draw_directional_arrow(position, selection, "down")
+        self:draw_directional_arrow(position, selection, "left")
+        self:draw_directional_arrow(position, selection, "up")
       end
     end
   end
@@ -193,25 +193,30 @@ function room:draw()
   end
 end
 
-function room:draw_directional_arrow(player_position, sprite_data, arrow_direction, selected_direction)
+function room:draw_directional_arrow(player_position, selection, arrow_direction)
   if self:validate_direction(player_position, arrow_direction) then
+    local draw_type = "default"
+    if selection.direction == arrow_direction then
+      if selection.action == "hook" then
+        draw_type = "hook"
+      else
+        draw_type = "move"
+      end
+    end
+
     self:draw_arrow_sprite(
-      sprite_data,
+      selection.direction_sprite,
       player_position + direction_to_offset(arrow_direction),
       direction_to_rotation(arrow_direction),
-      selected_direction == arrow_direction
+      draw_type
     )
   end
 end
 
-function room:draw_arrow_sprite(sprite_data, position, rotation, highlight)
-  local quad = sprite_data.quads[1]
-  if highlight then
-    quad = sprite_data.quads[2]
-  end
+function room:draw_arrow_sprite(sprite_data, position, rotation, draw_type)
   love.graphics.draw(
     sprite_data.sheet,
-    quad,
+    sprite_data.quads[draw_type],
     self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale) +
       _constants.TILE_SIZE * self.tile_scale / 2,
     self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale) +
