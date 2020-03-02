@@ -29,10 +29,10 @@ function turn:init()
 end
 
 function turn:action_pressed(action, e)
-  if self.phases[self.phase_index] ~= "PLAYER" then
+  if not e:has(_components.control) or not e:has(_components.selection) then
     return
   end
-  if not e:has(_components.control) or not e:has(_components.selection) then
+  if (action == "end_turn" or action == "back") and self.phases[self.phase_index] ~= "PLAYER" then
     return
   end
   if action == "end_turn" then

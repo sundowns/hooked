@@ -100,10 +100,22 @@ function hook:begin_phase(phase)
   end
 end
 
-function hook:player_with_hook_moved(player_moved_from, direction)
+function hook:player_with_hook_moved(old_position, new_position, direction)
   for i = 1, self.HOOK.size do
     local e = self.HOOK:get(i)
-    e:get(_components.chain):add_link_to_back(player_moved_from, get_opposite_direction(direction))
+    local chain = e:get(_components.chain)
+    local current_back_link = chain.links[1]
+    if current_back_link then
+      if current_back_link.position ~= new_position then
+        chain:add_link_to_back(old_position, get_opposite_direction(direction))
+      else
+        -- also delete the last one (the one we're moving onto)
+        chain:consume_first()
+      end
+    else
+      -- there are no links, just add one
+      chain:add_link_to_back(old_position, get_opposite_direction(direction))
+    end
   end
 end
 
@@ -119,6 +131,7 @@ function hook:invalid_entity_move(e)
     chain:restore_last()
   end
   if head.is_extending then
+    print("wtf?")
     head:set_direction(get_opposite_direction(head.direction))
     head:retract()
   end

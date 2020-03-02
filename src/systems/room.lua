@@ -186,7 +186,7 @@ function room:attempt_entity_move(e, direction, is_player)
       -- check if chain is out, if so remove last link
       local hook_thrower = e:get(_components.hook_thrower)
       if not hook_thrower.can_throw then
-        self:getWorld():emit("player_with_hook_moved", old_position, direction)
+        self:getWorld():emit("player_with_hook_moved", old_position, grid.position, direction)
       end
       self:getWorld():emit("end_phase")
     end
@@ -239,6 +239,12 @@ function room:draw()
     end
   end
 
+  for i = 1, self.HOOK_CHAIN.size do
+    local hook = self.HOOK_CHAIN:get(i)
+    local chain = hook:get(_components.chain)
+    self:draw_chain(chain, self.PLAYER:get(1):get(_components.health).current)
+  end
+
   for i = 1, self.DRAWABLE.size do
     local e = self.DRAWABLE:get(i)
     local position = e:get(_components.grid).position
@@ -268,21 +274,6 @@ function room:draw()
     end
   end
 
-  for i = 1, self.HOOK_CHAIN.size do
-    local hook = self.HOOK_CHAIN:get(i)
-    local chain = hook:get(_components.chain)
-    love.graphics.setColor(1, 0, 1)
-    for j, link in ipairs(chain.links) do
-      love.graphics.circle(
-        "fill",
-        self.grid_origin.x + (link.position.x * _constants.TILE_SIZE * self.tile_scale) +
-          _constants.TILE_SIZE * self.tile_scale / 2,
-        self.grid_origin.y + (link.position.y * _constants.TILE_SIZE * self.tile_scale) +
-          _constants.TILE_SIZE * self.tile_scale / 2,
-        5
-      )
-    end
-  end
   _util.l.reset_colour()
 
   if self.screen_shaking then
@@ -316,6 +307,25 @@ function room:draw_directional_arrow(player_position, selection, arrow_direction
   end
 end
 
+function room:draw_chain(chain, current_health)
+  local sprite_data = chain.sprite_data
+  for j, link in ipairs(chain.links) do
+    love.graphics.draw(
+      sprite_data.sheet,
+      sprite_data.quads[current_health],
+      self.grid_origin.x + (link.position.x * _constants.TILE_SIZE * self.tile_scale) +
+        _constants.TILE_SIZE * self.tile_scale / 2,
+      self.grid_origin.y + (link.position.y * _constants.TILE_SIZE * self.tile_scale) +
+        _constants.TILE_SIZE * self.tile_scale / 2,
+      direction_to_rotation(link.direction),
+      self.selector_scale,
+      self.selector_scale,
+      _constants.TILE_SIZE / 2,
+      _constants.TILE_SIZE / 2
+    )
+  end
+end
+
 function room:draw_arrow_sprite(sprite_data, position, rotation, draw_type)
   love.graphics.draw(
     sprite_data.sheet,
@@ -327,8 +337,8 @@ function room:draw_arrow_sprite(sprite_data, position, rotation, draw_type)
     rotation,
     self.selector_scale,
     self.selector_scale,
-    _constants.TILE_SIZE * self.selector_scale / 8,
-    _constants.TILE_SIZE * self.selector_scale / 8
+    _constants.TILE_SIZE / 2,
+    _constants.TILE_SIZE / 2
   )
   _util.l.reset_colour()
 end

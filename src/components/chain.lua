@@ -47,11 +47,14 @@ function chain:consume_last()
   self.links[#self.links] = nil
 end
 
+function chain:consume_first()
+  table.remove(self.links, 1)
+end
+
 function chain:restore_last()
   if not self.last_consumed then
     return
   end
-  print("restoring")
   self.links[#self.links + 1] = self.last_consumed
   self.last_consumed = nil
 end
