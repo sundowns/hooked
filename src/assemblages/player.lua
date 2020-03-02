@@ -26,9 +26,10 @@ return Concord.assemblage(
     }
 
     local direction_sprite_quads = {
-      ["default"] = _sprites.build_quad(0, 1),
-      ["move"] = _sprites.build_quad(1, 1),
-      ["hook"] = _sprites.build_quad(2, 1)
+      ["move_default"] = _sprites.build_quad(0, 1),
+      ["move_target"] = _sprites.build_quad(1, 1),
+      ["hook_target"] = _sprites.build_quad(2, 1),
+      ["hook_default"] = _sprites.build_quad(3, 1)
     }
 
     e:give(_components.grid, origin, true):give(

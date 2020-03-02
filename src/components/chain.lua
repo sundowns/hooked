@@ -7,12 +7,13 @@ local chain =
       sheet = spritesheet,
       quads = quads
     }
+    e.last_consumed = nil
   end
 )
 
 function chain:add_link_to_front(grid_position, direction)
   assert(grid_position and grid_position.x and grid_position.y, "received non-vector position for new chain link")
-  assert(#self.links < self.max_length, "Attempted to add link to full chain")
+  -- assert(#self.links < self.max_length, "Attempted to add link to full chain") --TODO: figure this out
   self.links[#self.links + 1] = {
     position = grid_position,
     direction = direction
@@ -21,10 +22,15 @@ end
 
 function chain:add_link_to_back(grid_position, direction)
   assert(grid_position and grid_position.x and grid_position.y, "received non-vector position for new chain link")
-  assert(#self.links < self.max_length, "Attempted to add link to full chain")
+  -- assert(#self.links < self.max_length, "Attempted to add link to full chain") --TODO: figure this out
 
-  assert(
-    "I haven't implemented this, next challenge!!!! (need to add at the LOWEST index, like a 2-way linked list dealio)"
+  table.insert(
+    self.links,
+    1,
+    {
+      position = grid_position,
+      direction = direction
+    }
   )
 end
 
@@ -37,7 +43,17 @@ function chain:is_full()
 end
 
 function chain:consume_last()
-  table.remove(self.links)
+  self.last_consumed = self.links[#self.links]
+  self.links[#self.links] = nil
+end
+
+function chain:restore_last()
+  if not self.last_consumed then
+    return
+  end
+  print("restoring")
+  self.links[#self.links + 1] = self.last_consumed
+  self.last_consumed = nil
 end
 
 return chain

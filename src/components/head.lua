@@ -6,17 +6,12 @@ local head =
   end
 )
 
+function head:set_direction(direction)
+  self.direction = direction
+end
+
 function head:retract()
   self.is_extending = false
-  if self.direction == "right" then
-    self.direction = "left"
-  elseif self.direction == "left" then
-    self.direction = "right"
-  elseif self.direction == "up" then
-    self.direction = "down"
-  elseif self.direction == "down" then
-    self.direction = "up"
-  end
 end
 
 return head

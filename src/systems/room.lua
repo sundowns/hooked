@@ -2,7 +2,8 @@ local room =
   Concord.system(
   {_components.grid, "ALL"},
   {_components.grid, _components.sprite, "DRAWABLE"},
-  {_components.control, _components.grid, "PLAYER"}
+  {_components.control, _components.grid, "PLAYER"},
+  {_components.chain, _components.head, "HOOK_CHAIN"}
 )
 
 local _TILE_LOOKUP = {
@@ -174,6 +175,13 @@ function room:attempt_entity_move(e, direction, is_player)
       self:set_occupancy(grid.position.x, grid.position.y, true)
     end
     self:getWorld():emit("shake", 0.15, 0.5)
+
+    -- Fire event if hook was the one that moved:
+    if e:has(_components.head) and e:has(_components.chain) then
+      self:getWorld():emit("hook_moved", e, old_position)
+    end
+
+    -- Fire event if player was one that moved:
     if is_player then
       -- check if chain is out, if so remove last link
       local hook_thrower = e:get(_components.hook_thrower)
@@ -185,6 +193,7 @@ function room:attempt_entity_move(e, direction, is_player)
   else
     --TODO: invalid move SFX
     self:getWorld():emit("invalid_entity_move", e)
+    self:getWorld():emit("invalid_directional_action")
   end
 end
 
@@ -196,7 +205,8 @@ function room:attempt_hook_throw(e, direction)
   if self:validate_direction(grid.position, direction) then
     self:getWorld():emit("throw_hook", direction)
   else
-    print("invalid hook throw") --TODO: invalid move SFX
+    --TODO: invalid move SFX
+    self:getWorld():emit("invalid_directional_action")
   end
 end
 
@@ -258,6 +268,23 @@ function room:draw()
     end
   end
 
+  for i = 1, self.HOOK_CHAIN.size do
+    local hook = self.HOOK_CHAIN:get(i)
+    local chain = hook:get(_components.chain)
+    love.graphics.setColor(1, 0, 1)
+    for j, link in ipairs(chain.links) do
+      love.graphics.circle(
+        "fill",
+        self.grid_origin.x + (link.position.x * _constants.TILE_SIZE * self.tile_scale) +
+          _constants.TILE_SIZE * self.tile_scale / 2,
+        self.grid_origin.y + (link.position.y * _constants.TILE_SIZE * self.tile_scale) +
+          _constants.TILE_SIZE * self.tile_scale / 2,
+        5
+      )
+    end
+  end
+  _util.l.reset_colour()
+
   if self.screen_shaking then
     love.graphics.pop()
   end
@@ -265,12 +292,18 @@ end
 
 function room:draw_directional_arrow(player_position, selection, arrow_direction)
   if self:validate_direction(player_position, arrow_direction) then
-    local draw_type = "default"
+    local draw_type = "move_default"
     if selection.direction == arrow_direction then
       if selection.action == "hook" then
-        draw_type = "hook"
+        draw_type = "hook_target"
       else
-        draw_type = "move"
+        draw_type = "move_target"
+      end
+    else
+      if selection.action == "hook" then
+        draw_type = "hook_default"
+      else
+        draw_type = "move_default"
       end
     end
 

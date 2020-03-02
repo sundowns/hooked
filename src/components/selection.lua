@@ -36,6 +36,11 @@ function selection:reset(maintain_direction)
   end
   self.is_passing = false
 end
+
+function selection:reset_direction()
+  self.direction = _constants.DEFAULT_DIRECTION
+end
+
 function selection:prompt_pass()
   self.is_passing = true
 end

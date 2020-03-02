@@ -124,6 +124,11 @@ function turn:make_selection(action, e)
   end
 end
 
+function turn:invalid_directional_action()
+  -- reset player's direction
+  self.PLAYER:get(1):get(_components.selection):reset_direction()
+end
+
 function turn:draw_ui()
   local player = self.PLAYER:get(1)
   local selection = player:get(_components.selection)
