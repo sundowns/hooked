@@ -1,11 +1,17 @@
 local selection =
   Concord.component(
-  function(e, all_actions, all_directions)
+  function(e, all_actions, all_directions, spritesheet, quads)
     e.action = _constants.DEFAULT_ACTION
     e.all_actions = all_actions
 
     e.direction = _constants.DEFAULT_DIRECTION
     e.all_directions = all_directions
+    if spritesheet and quads then
+      e.direction_sprite = {
+        sheet = spritesheet,
+        quads = quads
+      }
+    end
 
     e.is_passing = false
   end
@@ -23,12 +29,13 @@ function selection:set_direction(direction)
   self:cancel_pass()
 end
 
-function selection:reset()
+function selection:reset(maintain_direction)
   self.action = _constants.DEFAULT_ACTION
-  self.direction = _constants.DEFAULT_DIRECTION
+  if not maintain_direction then
+    self.direction = _constants.DEFAULT_DIRECTION
+  end
   self.is_passing = false
 end
-
 function selection:prompt_pass()
   self.is_passing = true
 end

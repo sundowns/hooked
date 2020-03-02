@@ -22,15 +22,41 @@ local _TILE_DICTIONARY = {
   }
 }
 
+local _DIRECTION_OFFSETS = {
+  ["right"] = Vector(1, 0),
+  ["down"] = Vector(0, 1),
+  ["left"] = Vector(-1, 0),
+  ["up"] = Vector(0, -1)
+}
+
+-- from default (pointing UP)
+local _DIRECTION_ROTATIONS = {
+  ["right"] = math.pi / 2,
+  ["down"] = math.pi,
+  ["left"] = -math.pi / 2,
+  ["up"] = math.pi * 2
+}
+
+function direction_to_offset(direction)
+  assert(_DIRECTION_OFFSETS[direction], "'direction_to_offset' received invalid direction")
+  return _DIRECTION_OFFSETS[direction]:clone()
+end
+
+function direction_to_rotation(direction)
+  assert(_DIRECTION_ROTATIONS[direction], "'direction_to_rotation' received invalid direction")
+  return _DIRECTION_ROTATIONS[direction]
+end
+
 function lookup_tile(id)
   return _TILE_DICTIONARY[_TILE_LOOKUP[id]]
 end
 
 function room:init()
-  -- self.timer = Timer.new()
+  self.timer = Timer.new()
   self.grid = {}
   self.grid_origin = Vector(0, 0)
   self.tile_scale = 8
+  self.selector_scale = 4
 
   -- Screen shake vars
   self.screen_shaking = false
@@ -50,7 +76,7 @@ function room:load_room(layout_grid)
     (love.graphics.getHeight() / 2) - (rows / 2 * _constants.TILE_SIZE * self.tile_scale)
   )
 
-  _assemblages.player:assemble(Concord.entity(self:getWorld()), Vector(0, 0))
+  _assemblages.player:assemble(Concord.entity(self:getWorld()), Vector(1, 1))
 end
 
 function room:shake(duration, magnitude)
@@ -63,7 +89,7 @@ function room:shake(duration, magnitude)
 end
 
 function room:update(dt)
-  -- self.timer:update(dt)
+  self.timer:update(dt)
   if self.screen_shaking then
     if self.shake_duration > self.shake_count then
       self.shake_count = self.shake_count + dt
@@ -75,33 +101,32 @@ function room:update(dt)
   end
 end
 
-function room:is_empty(x, y)
-  if not self.grid[y + 1] or not self.grid[y + 1][x + 1] then
+function room:is_empty(position)
+  if not self.grid[position.y + 1] or not self.grid[position.y + 1][position.x + 1] then
     return false
   end
-  local tile = lookup_tile(self.grid[y + 1][x + 1])
+  local tile = lookup_tile(self.grid[position.y + 1][position.x + 1])
   return tile.walkable
 end
 
 function room:attempt_player_move(direction)
   local player = self.PLAYER:get(1)
   local grid = player:get(_components.grid)
-  local offset = Vector(0, 0)
-  if direction == "right" then
-    offset = Vector(1, 0)
-  elseif direction == "down" then
-    offset = Vector(0, 1)
-  elseif direction == "left" then
-    offset = Vector(-1, 0)
-  elseif direction == "up" then
-    offset = Vector(0, -1)
-  end
-  if self:is_empty(grid.position.x + offset.x, grid.position.y + offset.y) then
-    grid:translate(offset.x, offset.y)
+  if self:validate_direction(grid.position, direction) then
+    grid:translate(direction_to_offset(direction))
+    -- grid:translate(offset.x, offset.y)
+    self:getWorld():emit("shake", 0.15, 0.5)
     self:getWorld():emit("end_phase")
   else
-    -- TODO: emit some sort of warning/error sound/message
+    print("invalid move")
   end
+  -- local offset = direction_to_offset(direction)
+  -- if self:is_empty(grid.position + offset) then
+  --   -- TODO: we need to use transforms with absolute positions to tween position properly
+  --   -- self.timer:tween(0.15, grid, {position = Vector(grid.position.x + offset.x, grid.position.y + offset.y)})
+  -- else
+  --   -- TODO: emit some sort of warning/error sound/message
+  -- end
 end
 
 function room:draw()
@@ -151,10 +176,61 @@ function room:draw()
       self.tile_scale,
       self.tile_scale
     )
+
+    if e:has(_components.selection) then
+      local selection = e:get(_components.selection)
+      if selection.direction_sprite then
+        self:draw_directional_arrow(position, selection.direction_sprite, "right", selection.direction)
+        self:draw_directional_arrow(position, selection.direction_sprite, "down", selection.direction)
+        self:draw_directional_arrow(position, selection.direction_sprite, "left", selection.direction)
+        self:draw_directional_arrow(position, selection.direction_sprite, "up", selection.direction)
+      end
+    end
   end
 
   if self.screen_shaking then
     love.graphics.pop()
+  end
+end
+
+function room:draw_directional_arrow(player_position, sprite_data, arrow_direction, selected_direction)
+  if self:validate_direction(player_position, arrow_direction) then
+    self:draw_arrow_sprite(
+      sprite_data,
+      player_position + direction_to_offset(arrow_direction),
+      direction_to_rotation(arrow_direction),
+      selected_direction == arrow_direction
+    )
+  end
+end
+
+function room:draw_arrow_sprite(sprite_data, position, rotation, highlight)
+  local quad = sprite_data.quads[1]
+  if highlight then
+    quad = sprite_data.quads[2]
+  end
+  love.graphics.draw(
+    sprite_data.sheet,
+    quad,
+    self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale) +
+      _constants.TILE_SIZE * self.tile_scale / 2,
+    self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale) +
+      _constants.TILE_SIZE * self.tile_scale / 2,
+    rotation,
+    self.selector_scale,
+    self.selector_scale,
+    _constants.TILE_SIZE * self.selector_scale / 8,
+    _constants.TILE_SIZE * self.selector_scale / 8
+  )
+  _util.l.reset_colour()
+end
+
+function room:validate_direction(position, direction)
+  local offset = direction_to_offset(direction)
+  if self:is_empty(position + offset) then
+    return true
+  else
+    return false
   end
 end
 

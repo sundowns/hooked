@@ -90,7 +90,26 @@ function turn:begin_turn()
   self.turn_count = self.turn_count + 1
   print("Begin turn: " .. self.turn_count)
   local player = self.PLAYER:get(1)
-  player:get(_components.selection):reset()
+  local selection = player:get(_components.selection)
+  local direction_held = false
+  local control = player:get(_components.control)
+  if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
+    selection:set_direction("left")
+    direction_held = true
+  end
+  if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
+    selection:set_direction("right")
+    direction_held = true
+  end
+  if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
+    selection:set_direction("up")
+    direction_held = true
+  end
+  if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
+    selection:set_direction("down")
+    direction_held = true
+  end
+  selection:reset(direction_held)
 end
 
 function turn:make_selection(action, e)

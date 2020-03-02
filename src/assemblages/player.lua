@@ -1,7 +1,7 @@
 -- e is the Entity being assembled.
 -- cuteness and legs are variables passed in
 return Concord.assemblage(
-  function(e, origin, sprite_sheet, sprite_quad)
+  function(e, origin)
     local PLAYER_ACCELERATION = 360
     local bindings = {
       ["left"] = "left",
@@ -25,13 +25,20 @@ return Concord.assemblage(
       [0] = _sprites.build_quad(4, 2)
     }
 
+    local direction_sprite_quads = {
+      [1] = _sprites.build_quad(0, 1),
+      [2] = _sprites.build_quad(1, 1)
+    }
+
     e:give(_components.grid, origin):give(
       _components.selection,
       {
         ["move"] = true,
         ["hook"] = true
       },
-      _constants.DIRECTIONS
+      _constants.DIRECTIONS,
+      _sprites.sheet,
+      direction_sprite_quads
     ):give(_components.control, bindings):give(_components.hook_thrower):give(
       _components.sprite,
       _sprites.sheet,

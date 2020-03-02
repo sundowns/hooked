@@ -11,8 +11,9 @@ function grid:set_position(position)
   self.position = position
 end
 
-function grid:translate(dx, dy)
-  self.position = Vector(self.position.x + dx, self.position.y + dy)
+function grid:translate(delta)
+  assert(delta and delta.x and delta.y)
+  self.position = self.position + delta
 end
 
 return grid
