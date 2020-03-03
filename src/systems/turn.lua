@@ -94,21 +94,23 @@ function turn:begin_turn()
   local control = player:get(_components.control)
   if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
     selection:set_direction("left")
-    direction_held = true
+  -- direction_held = true
   end
   if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
     selection:set_direction("right")
-    direction_held = true
+  -- direction_held = true
   end
   if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
     selection:set_direction("up")
-    direction_held = true
+  -- direction_held = true
   end
   if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
     selection:set_direction("down")
-    direction_held = true
+  -- direction_held = true
   end
-  selection:reset(direction_held)
+  -- if not direction_held then
+  --   selection:reset()
+  -- end
 end
 
 function turn:make_selection(action, e)

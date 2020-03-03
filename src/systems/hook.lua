@@ -44,6 +44,8 @@ function hook:throw_hook(direction)
     direction
   )
 
+  player:get(_components.selection):reset()
+
   self:getWorld():emit("end_phase")
 end
 
