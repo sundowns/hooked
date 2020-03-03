@@ -126,7 +126,7 @@ end
 
 function turn:invalid_directional_action()
   -- reset player's direction
-  self.PLAYER:get(1):get(_components.selection):reset_direction()
+  self.PLAYER:get(1):get(_components.selection):reset()
 end
 
 function turn:draw_ui()
