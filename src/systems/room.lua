@@ -79,26 +79,27 @@ function room:init()
   self.ALL.onEntityAdded = function(pool, e)
     local grid = e:get(_components.grid)
     if grid.is_occupier then
-      self:set_occupancy(grid.position.x, grid.position.y, true)
+      self:set_occupancy(grid.position.x, grid.position.y, e)
     end
   end
 
   self.ALL.onEntityRemoved = function(pool, e)
     local grid = e:get(_components.grid)
     if grid.is_occupier then
-      self:set_occupancy(grid.position.x, grid.position.y, false)
+      if self:get_occupant(grid.position.x, grid.position.y) == e then
+        self:set_occupancy(grid.position.x, grid.position.y, nil)
+      end
     end
   end
 end
 
-function room:set_occupancy(x, y, is_occupied)
-  assert(is_occupied ~= nil, "no bueno")
-  self.occupancy_map[y + 1][x + 1] = is_occupied
+function room:set_occupancy(x, y, occupant)
+  self.occupancy_map[y + 1][x + 1] = occupant
 end
 
-function room:is_occupied(x, y)
+function room:get_occupant(x, y)
   if not self.occupancy_map[y + 1] or not self.occupancy_map[y + 1][x + 1] then
-    return false
+    return nil
   end
   return self.occupancy_map[y + 1][x + 1]
 end
@@ -119,13 +120,18 @@ function room:load_room(layout_grid)
   for y, row in ipairs(self.grid) do
     self.occupancy_map[y] = {}
     for x, tile_id in ipairs(row) do
-      self:set_occupancy(x - 1, y - 1, false)
+      self:set_occupancy(x - 1, y - 1, nil)
       if tile_id == 0 then
         player_spawn = Vector(x - 1, y - 1)
       end
     end
   end
   _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn)
+
+  -- test enemies
+  -- TODO: loop over empty tiles (dirt), look for any > 1 square from the enemy and consider as eligible candidate for spawns
+  _assemblages.goblin:assemble(Concord.entity(self:getWorld()), Vector(0, 0))
+  _assemblages.goblin:assemble(Concord.entity(self:getWorld()), Vector(4, 2))
 end
 
 function room:shake(duration, magnitude)
@@ -154,46 +160,87 @@ function room:is_empty(position)
   if not self.grid[position.y + 1] or not self.grid[position.y + 1][position.x + 1] then
     return false
   end
-  if self:is_occupied(position.x, position.y) then
+  if self:get_occupant(position.x, position.y) then
     return false -- something is here already
   end
   local tile = lookup_tile(self.grid[position.y + 1][position.x + 1])
   return tile.walkable
 end
 
-function room:attempt_entity_move(e, direction, is_player)
+function room:move_entity(e, direction)
+  local grid = e:get(_components.grid)
+  local old_position = grid.position:clone()
+  grid:translate(direction_to_offset(direction))
+  if grid.is_occupier then
+    -- empty current tile, occupy new one
+    self:set_occupancy(old_position.x, old_position.y, nil)
+    self:set_occupancy(grid.position.x, grid.position.y, e)
+  end
+
+  -- Fire event if hook was the one that moved:
+  if e:has(_components.head) and e:has(_components.chain) then
+    self:getWorld():emit("hook_moved", e, old_position)
+  end
+
+  -- Fire event if player was one that moved:
+  if e:get(_components.control) then
+    self:getWorld():emit("shake", 0.15, 0.5)
+    -- check if chain is out, if so remove last link
+    local hook_thrower = e:get(_components.hook_thrower)
+    if not hook_thrower.can_throw then
+      self:getWorld():emit("player_with_hook_moved", old_position, grid.position, direction)
+    end
+    self:getWorld():emit("end_phase", "PLAYER")
+    return
+  end
+end
+
+function room:attempt_entity_move(e, direction)
   if not e:has(_components.grid) then
     return
   end
-  local grid = e:get(_components.grid)
-  if self:validate_direction(grid.position, direction) then
-    local old_position = grid.position:clone()
-    grid:translate(direction_to_offset(direction))
-    if grid.is_occupier then
-      -- empty current tile, occupy new one
-      self:set_occupancy(old_position.x, old_position.y, false)
-      self:set_occupancy(grid.position.x, grid.position.y, true)
+  if self:validate_direction(e:get(_components.grid).position, direction) then
+    self:move_entity(e, direction)
+  else
+    if e:has(_components.head) then
+      -- its a hook, check if we collided with an enemy/obstacle of some kind
+      self:hook_collided_with_something(e, direction)
+    elseif e:has(_components.enemy) then
+      self:enemy_collided_with_something(e, direction)
+    elseif e:has(_components.control) then
+      --TODO: invalid move SFX
+      self:getWorld():emit("invalid_entity_move", e)
+      self:getWorld():emit("invalid_directional_action")
     end
-    self:getWorld():emit("shake", 0.15, 0.5)
+  end
+end
 
-    -- Fire event if hook was the one that moved:
-    if e:has(_components.head) and e:has(_components.chain) then
-      self:getWorld():emit("hook_moved", e, old_position)
-    end
-
-    -- Fire event if player was one that moved:
-    if is_player then
-      -- check if chain is out, if so remove last link
-      local hook_thrower = e:get(_components.hook_thrower)
-      if not hook_thrower.can_throw then
-        self:getWorld():emit("player_with_hook_moved", old_position, grid.position, direction)
-      end
-      self:getWorld():emit("end_phase")
+function room:hook_collided_with_something(hook, direction)
+  local collided_at = hook:get(_components.grid).position + direction_to_offset(direction)
+  local occupant = self:get_occupant(collided_at.x, collided_at.y)
+  if occupant then
+    if occupant:has(_components.enemy) then
+      self:getWorld():removeEntity(occupant)
+      self:set_occupancy(collided_at.x, collided_at.y, nil)
+      self:move_entity(hook, direction)
     end
   else
-    --TODO: invalid move SFX
-    self:getWorld():emit("invalid_entity_move", e)
-    self:getWorld():emit("invalid_directional_action")
+    self:getWorld():emit("invalid_entity_move", hook)
+  end
+end
+
+function room:enemy_collided_with_something(enemy, direction)
+  local position = enemy:get(_components.grid).position
+  local collided_at = position + direction_to_offset(direction)
+  local occupant = self:get_occupant(collided_at.x, collided_at.y)
+
+  if occupant then
+    if occupant:has(_components.control) then
+      self:getWorld():emit("reduce")
+    elseif occupant:has(_components.head) then
+      self:set_occupancy(position.x, position.y, nil)
+      self:getWorld():removeEntity(enemy)
+    end
   end
 end
 
@@ -205,8 +252,19 @@ function room:attempt_hook_throw(e, direction)
   if self:validate_direction(grid.position, direction) then
     self:getWorld():emit("throw_hook", direction)
   else
-    --TODO: invalid move SFX
-    self:getWorld():emit("invalid_directional_action")
+    local attempted_position = grid.position + direction_to_offset(direction)
+    local occupant = self:get_occupant(attempted_position.x, attempted_position.y)
+    if occupant then
+      -- we tried to place hook on an enemy, kill it and place the hook there anyway!
+      if occupant:has(_components.enemy) then
+        self:getWorld():removeEntity(occupant)
+        self:set_occupancy(attempted_position.x, attempted_position.y, nil)
+        self:getWorld():emit("throw_hook", direction)
+      end
+    else
+      --TODO: invalid move SFX
+      self:getWorld():emit("invalid_directional_action")
+    end
   end
 end
 
@@ -349,14 +407,16 @@ function room:draw_debug()
 
   love.graphics.setColor(1, 0, 0)
   -- draw the occupancy map
-  for y, row in ipairs(self.occupancy_map) do
-    for x, is_occupied in ipairs(row) do
-      if is_occupied then
+  for _, row in pairs(self.occupancy_map) do
+    for _, occupant in pairs(row) do
+      -- print(is_occupied)
+      if occupant then
+        local pos = occupant:get(_components.grid).position
         love.graphics.circle(
           "fill",
-          self.grid_origin.x + ((x - 1) * _constants.TILE_SIZE * self.tile_scale) +
+          self.grid_origin.x + ((pos.x) * _constants.TILE_SIZE * self.tile_scale) +
             (_constants.TILE_SIZE / 2 * self.tile_scale),
-          self.grid_origin.y + ((y - 1) * _constants.TILE_SIZE * self.tile_scale) +
+          self.grid_origin.y + ((pos.y) * _constants.TILE_SIZE * self.tile_scale) +
             (_constants.TILE_SIZE / 2 * self.tile_scale),
           5
         )

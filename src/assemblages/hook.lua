@@ -20,7 +20,7 @@ return Concord.assemblage(
 
     e:give(_components.grid, origin, true):give(_components.sprite, _sprites.sheet, head_sprite_quads, true):give(
       _components.chain,
-      5,
+      3,
       _sprites.sheet,
       chain_sprite_quads
     ):give(_components.head, direction)

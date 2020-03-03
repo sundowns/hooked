@@ -39,7 +39,7 @@ function chain:get_length()
 end
 
 function chain:is_full()
-  return #self.links == self.max_length
+  return #self.links >= self.max_length
 end
 
 function chain:consume_last()

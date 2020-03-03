@@ -2,7 +2,6 @@
 -- cuteness and legs are variables passed in
 return Concord.assemblage(
   function(e, origin)
-    local PLAYER_ACCELERATION = 360
     local bindings = {
       ["left"] = "left",
       ["right"] = "right",

@@ -4,6 +4,7 @@ _DEBUG = false
 function love.load()
   love.graphics.setDefaultFilter("nearest", "nearest", 4)
   love.graphics.setBackgroundColor(0.05, 0.1, 0.1)
+  math.randomseed(os.time())
   -- Globals
   Vector = require("libs.vector")
   Timer = require("libs.timer")
@@ -62,8 +63,6 @@ function love.keypressed(key, _, _)
     love.event.quit("restart")
   elseif key == "escape" then
     -- love.event.quit()
-  elseif key == "h" then
-    _worlds.game:emit("reduce") -- TODO: remove
   elseif key == "f1" then
     _DEBUG = not _DEBUG
   end

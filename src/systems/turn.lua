@@ -3,9 +3,9 @@ local turn = Concord.system({_components.control, _components.selection, _compon
 function turn:init()
   self.turn_count = 0
   self.phases = {
-    "PLAYER",
-    "HOOK",
-    "ENEMIES"
+    [1] = "PLAYER",
+    [2] = "HOOK",
+    [3] = "ENEMIES"
   }
   self.done = {
     ["hook"] = false,
@@ -55,12 +55,13 @@ function turn:end_player_phase(e)
     if action == "move" then
       if direction == "none" then
         if selection.is_passing then
-          self:end_phase("pass")
+          selection:reset()
+          self:end_phase("PLAYER")
         else
           selection:prompt_pass()
         end
       else
-        self:getWorld():emit("attempt_entity_move", e, direction, true)
+        self:getWorld():emit("attempt_entity_move", e, direction)
       end
     elseif action == "hook" and direction ~= "none" then
       local hook_thrower = e:get(_components.hook_thrower)
@@ -68,13 +69,17 @@ function turn:end_player_phase(e)
         self:getWorld():emit("attempt_hook_throw", e, direction)
       else
         -- TODO: some sort of error/warning about 1 hook at a time
-        print("hook is already out :c!")
       end
     end
   end
 end
 
-function turn:end_phase()
+function turn:end_phase(current)
+  assert(current, "received nil phase to turn:end_phase")
+  if current ~= self.phases[self.phase_index] then
+    -- ignore that
+    return
+  end
   self.phase_index = self.phase_index + 1
   if self.phase_index > #self.phases then
     self:getWorld():emit("turn_ended")
@@ -87,30 +92,23 @@ end
 function turn:begin_turn()
   self.phase_index = 1
   self.turn_count = self.turn_count + 1
-  print("Begin turn: " .. self.turn_count)
+  print("Begin turn: " .. self.turn_count) -- TODO: nuke
   local player = self.PLAYER:get(1)
   local selection = player:get(_components.selection)
   local direction_held = false
   local control = player:get(_components.control)
   if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
     selection:set_direction("left")
-  -- direction_held = true
   end
   if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
     selection:set_direction("right")
-  -- direction_held = true
   end
   if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
     selection:set_direction("up")
-  -- direction_held = true
   end
   if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
     selection:set_direction("down")
-  -- direction_held = true
   end
-  -- if not direction_held then
-  --   selection:reset()
-  -- end
 end
 
 function turn:make_selection(action, e)
@@ -185,7 +183,7 @@ function turn:draw_ui()
   local tracker_coords = Vector(0, 0)
   for i, phase_name in ipairs(self.phases) do
     local text = self.text["PHASES"][phase_name]
-    if phase_name == self.phases[self.phase_index] then
+    if i == self.phase_index then
       love.graphics.setColor(0, 1, 0)
     end
     love.graphics.draw(text, tracker_coords.x, tracker_coords.y)
@@ -193,6 +191,10 @@ function turn:draw_ui()
     _util.l.reset_colour()
   end
 end
+
+-- function turn:update(dt)
+--   print("turn system: " .. self.phases[self.phase_index])
+-- end
 
 function turn:draw_debug()
   local player = self.PLAYER:get(1)
