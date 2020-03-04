@@ -2,29 +2,24 @@ local turn = Concord.system({_components.control, _components.selection, _compon
 
 function turn:init()
   self.turn_count = 0
+  self.phase_index = 1
   self.phases = {
     [1] = "PLAYER",
     [2] = "HOOK",
     [3] = "ENEMIES"
   }
-  self.done = {
-    ["hook"] = false,
-    ["enemies"] = false,
-    ["items"] = false
-  }
-  self.phase_index = 1
   self.text = {
-    ["HOOK"] = love.graphics.newText(love.graphics.getFont(), "[Z] - Select Hook"),
-    ["FIRE_HOOK"] = love.graphics.newText(love.graphics.getFont(), "[SPACE] - Fire Hook"),
-    ["DIRECT"] = love.graphics.newText(love.graphics.getFont(), "[WASD/Arrows] - Select Direction"),
-    ["MOVE"] = love.graphics.newText(love.graphics.getFont(), "[SPACE] - Move"),
-    ["BACK"] = love.graphics.newText(love.graphics.getFont(), "[ESCAPE] - Back"),
-    ["PASS"] = love.graphics.newText(love.graphics.getFont(), "Press [SPACE] again to confirm pass"),
+    ["HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[Z] - Select Hook"),
+    ["FIRE_HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Fire Hook"),
+    ["DIRECT"] = love.graphics.newText(_fonts["CONTROLS"], "[WASD/Arrows] - Select Direction"),
+    ["MOVE"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Move"),
+    ["BACK"] = love.graphics.newText(_fonts["CONTROLS"], "[ESCAPE] - Back"),
+    ["PASS"] = love.graphics.newText(_fonts["PASS"], "Press [SPACE] again to PASS"),
     ["PHASES"] = {}
   }
 
   for i, phase in ipairs(self.phases) do
-    self.text["PHASES"][phase] = love.graphics.newText(love.graphics.getFont(), phase)
+    self.text["PHASES"][phase] = love.graphics.newText(_fonts["PHASES"], phase)
   end
 end
 
@@ -89,25 +84,32 @@ function turn:end_phase(current)
   end
 end
 
+function turn:room_loaded()
+  self.turn_count = 0
+  self:begin_turn()
+end
+
 function turn:begin_turn()
   self.phase_index = 1
   self.turn_count = self.turn_count + 1
   print("Begin turn: " .. self.turn_count) -- TODO: nuke
   local player = self.PLAYER:get(1)
-  local selection = player:get(_components.selection)
-  local direction_held = false
-  local control = player:get(_components.control)
-  if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
-    selection:set_direction("left")
-  end
-  if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
-    selection:set_direction("right")
-  end
-  if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
-    selection:set_direction("up")
-  end
-  if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
-    selection:set_direction("down")
+  if player then
+    local selection = player:get(_components.selection)
+    local direction_held = false
+    local control = player:get(_components.control)
+    if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
+      selection:set_direction("left")
+    end
+    if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
+      selection:set_direction("right")
+    end
+    if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
+      selection:set_direction("up")
+    end
+    if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
+      selection:set_direction("down")
+    end
   end
 end
 

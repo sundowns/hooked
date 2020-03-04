@@ -10,6 +10,7 @@ local _TILE_LOOKUP = {
   [0] = "dirt", -- spawn tile
   [1] = "dirt",
   [2] = "wall",
+  [3] = "exit",
   [10] = "door_orange",
   [11] = "door_blue",
   [12] = "door_purple"
@@ -30,6 +31,11 @@ local _TILE_DICTIONARY = {
     name = "wall",
     quad = _sprites.build_quad(1, 0),
     walkable = false
+  },
+  [_TILE_LOOKUP[3]] = {
+    name = "exit",
+    quad = _sprites.build_quad(2, 0),
+    walkable = true
   }
 }
 
@@ -63,6 +69,7 @@ function lookup_tile(id)
 end
 
 function room:init()
+  self.generator = require("src.room_generator")
   self.timer = Timer.new()
   self.grid = {}
   self.grid_origin = Vector(0, 0)
@@ -104,7 +111,14 @@ function room:get_occupant(x, y)
   return self.occupancy_map[y + 1][x + 1]
 end
 
-function room:load_room(layout_grid)
+function room:next_room(player_health, current_floor)
+  self:getWorld():clear()
+  local room = self.generator:generate(current_floor)
+  self:load_room(room, player_health)
+  self:getWorld():emit("room_loaded")
+end
+
+function room:load_room(layout_grid, player_health)
   local rows = #layout_grid
   local cols = #layout_grid[1]
   print("loading room: " .. rows .. "x" .. cols)
@@ -126,7 +140,7 @@ function room:load_room(layout_grid)
       end
     end
   end
-  _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn)
+  _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn, player_health)
 
   -- test enemies
   -- TODO: loop over empty tiles (dirt), look for any > 1 square from the enemy and consider as eligible candidate for spawns
@@ -190,9 +204,20 @@ function room:move_entity(e, direction)
     if not hook_thrower.can_throw then
       self:getWorld():emit("player_with_hook_moved", old_position, grid.position, direction)
     end
+
+    if self:get_tile_at(grid.position.x, grid.position.y).name == "exit" then
+      self:getWorld():emit("exit_reached", self:get_screen_coords(grid.position), e:get(_components.health).current)
+    end
     self:getWorld():emit("end_phase", "PLAYER")
     return
   end
+end
+
+function room:get_tile_at(x, y)
+  if not self.grid[y + 1] or not self.grid[y + 1][x + 1] then
+    return nil
+  end
+  return lookup_tile(self.grid[y + 1][x + 1])
 end
 
 function room:attempt_entity_move(e, direction)
@@ -311,15 +336,17 @@ function room:draw()
     if sprite.is_health_driven then
       quad = sprite.quads[self.PLAYER:get(1):get(_components.health).current]
     end
-    love.graphics.draw(
-      sprite.sheet,
-      quad,
-      self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
-      self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale),
-      0,
-      self.tile_scale,
-      self.tile_scale
-    )
+    if quad then
+      love.graphics.draw(
+        sprite.sheet,
+        quad,
+        self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
+        self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale),
+        0,
+        self.tile_scale,
+        self.tile_scale
+      )
+    end
 
     if e:has(_components.selection) then
       local selection = e:get(_components.selection)
@@ -368,13 +395,12 @@ end
 function room:draw_chain(chain, current_health)
   local sprite_data = chain.sprite_data
   for j, link in ipairs(chain.links) do
+    local screen_coords = self:get_screen_coords(link.position)
     love.graphics.draw(
       sprite_data.sheet,
       sprite_data.quads[current_health],
-      self.grid_origin.x + (link.position.x * _constants.TILE_SIZE * self.tile_scale) +
-        _constants.TILE_SIZE * self.tile_scale / 2,
-      self.grid_origin.y + (link.position.y * _constants.TILE_SIZE * self.tile_scale) +
-        _constants.TILE_SIZE * self.tile_scale / 2,
+      screen_coords.x,
+      screen_coords.y,
       direction_to_rotation(link.direction),
       self.selector_scale,
       self.selector_scale,
@@ -384,14 +410,23 @@ function room:draw_chain(chain, current_health)
   end
 end
 
+function room:get_screen_coords(grid_position)
+  -- gets the centre of the tile in screen coords
+  return Vector(
+    self.grid_origin.x + (grid_position.x * _constants.TILE_SIZE * self.tile_scale) +
+      _constants.TILE_SIZE * self.tile_scale / 2,
+    self.grid_origin.y + (grid_position.y * _constants.TILE_SIZE * self.tile_scale) +
+      _constants.TILE_SIZE * self.tile_scale / 2
+  )
+end
+
 function room:draw_arrow_sprite(sprite_data, position, rotation, draw_type)
+  local screen_coords = self:get_screen_coords(position)
   love.graphics.draw(
     sprite_data.sheet,
     sprite_data.quads[draw_type],
-    self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale) +
-      _constants.TILE_SIZE * self.tile_scale / 2,
-    self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale) +
-      _constants.TILE_SIZE * self.tile_scale / 2,
+    screen_coords.x,
+    screen_coords.y,
     rotation,
     self.selector_scale,
     self.selector_scale,
@@ -409,17 +444,10 @@ function room:draw_debug()
   -- draw the occupancy map
   for _, row in pairs(self.occupancy_map) do
     for _, occupant in pairs(row) do
-      -- print(is_occupied)
       if occupant then
         local pos = occupant:get(_components.grid).position
-        love.graphics.circle(
-          "fill",
-          self.grid_origin.x + ((pos.x) * _constants.TILE_SIZE * self.tile_scale) +
-            (_constants.TILE_SIZE / 2 * self.tile_scale),
-          self.grid_origin.y + ((pos.y) * _constants.TILE_SIZE * self.tile_scale) +
-            (_constants.TILE_SIZE / 2 * self.tile_scale),
-          5
-        )
+        local screen_coords = self:get_screen_coords(pos)
+        love.graphics.circle("fill", screen_coords.x, screen_coords.y, 5)
       end
     end
   end

@@ -11,6 +11,6 @@ return Concord.assemblage(
       _sprites.sheet,
       enemy_sprite_quads,
       false
-    ):give(_components.health, 1):give(_components.brain, "goblin")
+    ):give(_components.brain, "goblin")
   end
 )

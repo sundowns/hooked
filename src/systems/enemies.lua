@@ -79,7 +79,6 @@ function enemies:action_goblin(e)
     table.insert(choices, {"up", 2})
   end
   local choice = _util.g.choose_weighted(unpack(choices))
-  print(choice)
 
   if choice ~= "wait" then
     self:getWorld():emit("attempt_entity_move", e, choice)

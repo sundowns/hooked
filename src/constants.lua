@@ -8,5 +8,6 @@ return {
   },
   DEFAULT_DIRECTION = "none",
   DEFAULT_ACTION = "move",
-  TILE_SIZE = 8
+  TILE_SIZE = 8,
+  PLAYER_STARTING_HEALTH = 4
 }

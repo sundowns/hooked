@@ -1,7 +1,7 @@
 -- e is the Entity being assembled.
 -- cuteness and legs are variables passed in
 return Concord.assemblage(
-  function(e, origin)
+  function(e, origin, health)
     local bindings = {
       ["left"] = "left",
       ["right"] = "right",
@@ -45,6 +45,6 @@ return Concord.assemblage(
       _sprites.sheet,
       player_sprite_quads,
       true
-    ):give(_components.health, 4)
+    ):give(_components.health, health, _constants.PLAYER_STARTING_HEALTH)
   end
 )

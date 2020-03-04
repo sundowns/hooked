@@ -7,5 +7,6 @@ game:addSystem(_systems.hook)
 game:addSystem(_systems.enemies)
 game:addSystem(_systems.room)
 game:addSystem(_systems.health)
+game:addSystem(_systems.score)
 
 return game

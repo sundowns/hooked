@@ -134,7 +134,6 @@ function hook:invalid_entity_move(e)
   if not (e:has(_components.head) and e:has(_components.grid)) then
     return -- that ain't no hook
   end
-  print("hook could not move!")
   local chain = e:get(_components.chain)
   local head = e:get(_components.head)
   if chain.last_consumed then

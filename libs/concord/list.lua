@@ -9,9 +9,12 @@ List.__mt = {
 --- Creates a new List.
 -- @treturn List A new List
 function List.new()
-   return setmetatable({
-      size = 0,
-   }, List.__mt)
+   return setmetatable(
+      {
+         size = 0
+      },
+      List.__mt
+   )
 end
 
 --- Adds an object to the List.
@@ -23,8 +26,8 @@ function List:__add(obj)
    local size = self.size + 1
 
    self[size] = obj
-   self[obj]  = size
-   self.size  = size
+   self[obj] = size
+   self.size = size
 
    return self
 end
@@ -34,8 +37,10 @@ end
 -- @treturn List self
 function List:__remove(obj)
    local index = self[obj]
-   if not index then return end
-   local size  = self.size
+   if not index then
+      return
+   end
+   local size = self.size
 
    if index == size then
       self[size] = nil
@@ -94,8 +99,11 @@ function List:indexOf(obj)
    return self[obj]
 end
 
-return setmetatable(List, {
-   __call = function()
-      return List.new()
-   end,
-})
+return setmetatable(
+   List,
+   {
+      __call = function()
+         return List.new()
+      end
+   }
+)

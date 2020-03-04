@@ -1,7 +1,7 @@
 local health =
   Concord.component(
-  function(e, maximum)
-    e.current = maximum
+  function(e, current, maximum)
+    e.current = current
     e.maximum = maximum
   end
 )

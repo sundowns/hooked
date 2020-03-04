@@ -1,7 +1,7 @@
 local health = Concord.system({_components.health, _components.control, "PLAYER"})
 function health:init()
   -- -- a black/white mask image: black pixels will mask, white pixels will pass.
-  mask = love.graphics.newImage("resources/health_mask.png")
+  mask = love.graphics.newImage("resources/misc/health_mask.png")
   mask_shader =
     love.graphics.newShader [[
       vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
