@@ -1,10 +1,12 @@
 game = {}
-_DEBUG = true
+_DEBUG = false
 
 function game:init()
-  love.graphics.setBackgroundColor(0.05, 0.1, 0.1)
-  Concord = require("libs.concord")
+end
 
+function game:enter()
+  Concord = nil
+  Concord = require("libs.concord")
   _components = Concord.components
   _systems = Concord.systems
   _worlds = Concord.worlds
@@ -44,7 +46,7 @@ function game:keypressed(key, _, _)
   elseif key == "escape" then
     -- love.event.quit()
   elseif key == "f1" then
-    _DEBUG = not _DEBUG
+    _DEBUG = not _DEBUG -- TODO: remove
   end
 
   _worlds.game:emit("keypressed", key)

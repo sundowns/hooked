@@ -35,7 +35,6 @@ function health:reduce()
   self:getWorld():emit("shake", 0.5, 0.5)
   if health.current <= 0 then
     self:getWorld():emit("player_died")
-    print("ur dead dude") -- TODO:
   end
 end
 

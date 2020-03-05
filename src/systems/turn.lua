@@ -17,7 +17,7 @@ function turn:init()
     ["PASS"] = love.graphics.newText(_fonts["PASS"], "Press [SPACE] again to PASS"),
     ["PHASES"] = {}
   }
-  self.exit_reached = false
+  self.gameplay_paused = false
 
   for i, phase in ipairs(self.phases) do
     self.text["PHASES"][phase] = love.graphics.newText(_fonts["PHASES"], phase)
@@ -28,7 +28,7 @@ function turn:action_pressed(action, e)
   if not e:has(_components.control) or not e:has(_components.selection) then
     return
   end
-  if self.exit_reached then
+  if self.gameplay_paused then
     return
   end
   if (action == "end_turn" or action == "back") and self.phases[self.phase_index] ~= "PLAYER" then
@@ -74,11 +74,15 @@ function turn:end_player_phase(e)
 end
 
 function turn:exit_reached()
-  self.exit_reached = true
+  self.gameplay_paused = true
+end
+
+function turn:played_died()
+  self.gameplay_paused = true
 end
 
 function turn:next_room()
-  self.exit_reached = false
+  self.gameplay_paused = false
 end
 
 function turn:end_phase(current)
@@ -145,53 +149,55 @@ function turn:invalid_directional_action()
 end
 
 function turn:draw_ui()
-  local player = self.PLAYER:get(1)
-  local selection = player:get(_components.selection)
-
-  local text_to_draw = {}
-  local control_text_width = 0
-  local buffer_width = 20
-  function prepare_text_to_draw(text)
-    table.insert(text_to_draw, text)
-    control_text_width = control_text_width + text:getWidth() + buffer_width
-  end
-
-  -- draw options/controls
-  if selection.is_passing then
-    prepare_text_to_draw(self.text["PASS"])
-  else
-    if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
-      prepare_text_to_draw(self.text["BACK"])
+  -- draw controls
+  if self.phases[self.phase_index] == "PLAYER" then
+    local player = self.PLAYER:get(1)
+    local selection = player:get(_components.selection)
+    local text_to_draw = {}
+    local control_text_width = 0
+    local buffer_width = 20
+    function prepare_text_to_draw(text)
+      table.insert(text_to_draw, text)
+      control_text_width = control_text_width + text:getWidth() + buffer_width
     end
 
-    local hook_thrower = player:get(_components.hook_thrower)
-    if hook_thrower.can_throw then
-      if selection.action == "hook" then
-        if selection.direction ~= "none" then
-          prepare_text_to_draw(self.text["FIRE_HOOK"])
+    -- draw options/controls
+    if selection.is_passing then
+      prepare_text_to_draw(self.text["PASS"])
+    else
+      if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
+        prepare_text_to_draw(self.text["BACK"])
+      end
+
+      local hook_thrower = player:get(_components.hook_thrower)
+      if hook_thrower.can_throw then
+        if selection.action == "hook" then
+          if selection.direction ~= "none" then
+            prepare_text_to_draw(self.text["FIRE_HOOK"])
+          end
+        else
+          prepare_text_to_draw(self.text["HOOK"])
         end
-      else
-        prepare_text_to_draw(self.text["HOOK"])
+      end
+
+      if selection.direction == "none" then
+        prepare_text_to_draw(self.text["DIRECT"])
+      end
+
+      if selection.action == "move" and selection.direction ~= "none" then
+        prepare_text_to_draw(self.text["MOVE"])
       end
     end
 
-    if selection.direction == "none" then
-      prepare_text_to_draw(self.text["DIRECT"])
+    local offset = 0
+    for i, text in ipairs(text_to_draw) do
+      love.graphics.draw(
+        text,
+        (love.graphics.getWidth() / 2) - (control_text_width / 2) + offset,
+        love.graphics.getHeight() - text:getHeight() * 2
+      )
+      offset = offset + text:getWidth() + buffer_width
     end
-
-    if selection.action == "move" and selection.direction ~= "none" then
-      prepare_text_to_draw(self.text["MOVE"])
-    end
-  end
-
-  local offset = 0
-  for i, text in ipairs(text_to_draw) do
-    love.graphics.draw(
-      text,
-      (love.graphics.getWidth() / 2) - (control_text_width / 2) + offset,
-      love.graphics.getHeight() - text:getHeight() * 2
-    )
-    offset = offset + text:getWidth() + buffer_width
   end
 
   -- draw phase tracker
@@ -206,10 +212,6 @@ function turn:draw_ui()
     _util.l.reset_colour()
   end
 end
-
--- function turn:update(dt)
---   print("turn system: " .. self.phases[self.phase_index])
--- end
 
 function turn:draw_debug()
   local player = self.PLAYER:get(1)

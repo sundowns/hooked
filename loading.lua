@@ -1,11 +1,12 @@
 loading = {}
 local splash_displaying = false
 local splash_screen = nil
-local MINIMUM_LOAD_TIME = 0.25 --TODO: 1.25
+local MINIMUM_LOAD_TIME = 1.25 --TODO: 1.25
 local load_timer = 0
 
 function loading:init()
   love.graphics.setDefaultFilter("nearest", "nearest", 4)
+  love.graphics.setBackgroundColor(0.05, 0.1, 0.1)
   splash_screen = love.graphics.newImage("resources/misc/splashscreen.png")
 end
 
@@ -47,10 +48,14 @@ function load_game()
 
   _fonts = {
     ["FLOOR_COUNTER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 48),
-    ["CONTROLS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 16),
+    ["CONTROLS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
     ["PASS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 16),
-    ["PHASES"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 24)
+    ["PHASES"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 28),
+    ["HIGH_SCORE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
+    ["TITLE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 100),
+    ["GAME_OVER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 128),
+    ["START"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 24)
   }
 
-  GamestateManager.switch(game)
+  GamestateManager.switch(title, {floor_count = 0})
 end

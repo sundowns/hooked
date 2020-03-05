@@ -10,5 +10,8 @@ return {
   DEFAULT_ACTION = "move",
   TILE_SIZE = 8,
   PLAYER_STARTING_HEALTH = 4,
-  PLAYER_HOOK_LENGTH = 4
+  PLAYER_HOOK_LENGTH = 4,
+  COLOURS = {
+    ["GOLD"] = {0.867, 0.655, 0.047}
+  }
 }

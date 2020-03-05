@@ -249,7 +249,6 @@ function room:hook_collided_with_something(hook, direction)
       self:set_occupancy(collided_at.x, collided_at.y, nil)
       occupant:get(_components.enemy):mark_for_deletion()
       self:getWorld():removeEntity(occupant)
-      print("hook hit enemy")
       -- no need to unset occupancy for enemy here
       self:move_entity(hook, direction)
     end
@@ -267,7 +266,6 @@ function room:enemy_collided_with_something(enemy, direction)
     if occupant:has(_components.control) then
       self:getWorld():emit("reduce")
     elseif occupant:has(_components.head) then
-      print("enemy hit hook")
       self:set_occupancy(position.x, position.y, nil)
       self:getWorld():removeEntity(enemy)
     end
@@ -288,7 +286,6 @@ function room:attempt_hook_throw(e, direction)
       -- we tried to place hook on an enemy, kill it and place the hook there anyway!
       if occupant:has(_components.enemy) then
         self:getWorld():removeEntity(occupant)
-        print("player threw hook into enemy")
         self:set_occupancy(attempted_position.x, attempted_position.y, nil)
         self:getWorld():emit("throw_hook", direction)
       end

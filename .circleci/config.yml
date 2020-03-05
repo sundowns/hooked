@@ -74,6 +74,9 @@ commands:
             cp libs -r dist
             cp resources -r dist
             cp main.lua dist
+            cp game.lua dist
+            cp loading.lua dist
+            cp title.lua dist
             cp conf.lua dist
             cd dist
             zip -9 -r game.love .
