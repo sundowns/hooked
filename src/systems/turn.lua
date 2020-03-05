@@ -14,7 +14,7 @@ function turn:init()
     ["DIRECT"] = love.graphics.newText(_fonts["CONTROLS"], "[WASD/Arrows] - Select Direction"),
     ["MOVE"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Move"),
     ["BACK"] = love.graphics.newText(_fonts["CONTROLS"], "[ESCAPE] - Back"),
-    ["PASS"] = love.graphics.newText(_fonts["PASS"], "Press [SPACE] again to PASS"),
+    ["PASS"] = love.graphics.newText(_fonts["CONTROLS"], "Press [SPACE] again to PASS"),
     ["PHASES"] = {}
   }
   self.gameplay_paused = false
@@ -77,7 +77,7 @@ function turn:exit_reached()
   self.gameplay_paused = true
 end
 
-function turn:played_died()
+function turn:player_died()
   self.gameplay_paused = true
 end
 
@@ -150,7 +150,7 @@ end
 
 function turn:draw_ui()
   -- draw controls
-  if self.phases[self.phase_index] == "PLAYER" then
+  if self.phases[self.phase_index] == "PLAYER" and not self.gameplay_paused then
     local player = self.PLAYER:get(1)
     local selection = player:get(_components.selection)
     local text_to_draw = {}

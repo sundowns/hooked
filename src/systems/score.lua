@@ -56,6 +56,7 @@ function score:player_died()
     5,
     function()
       self:getWorld():clear()
+      self.defeat = false
       GamestateManager.switch(title, {floor_count = self.floor_counter})
     end
   )

@@ -2,10 +2,6 @@ game = {}
 _DEBUG = false
 
 function game:init()
-end
-
-function game:enter()
-  Concord = nil
   Concord = require("libs.concord")
   _components = Concord.components
   _systems = Concord.systems
@@ -16,7 +12,9 @@ function game:enter()
   Concord.loadSystems("src/systems")
   Concord.loadWorlds("src/worlds")
   Concord.loadAssemblages("src/assemblages")
+end
 
+function game:enter()
   _worlds.game:emit("next_room", _constants.PLAYER_STARTING_HEALTH, 1)
 end
 

@@ -49,7 +49,6 @@ function load_game()
   _fonts = {
     ["FLOOR_COUNTER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 48),
     ["CONTROLS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
-    ["PASS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 16),
     ["PHASES"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 28),
     ["HIGH_SCORE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
     ["TITLE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 100),
