@@ -328,12 +328,6 @@ function room:draw()
     end
   end
 
-  for i = 1, self.HOOK_CHAIN.size do
-    local hook = self.HOOK_CHAIN:get(i)
-    local chain = hook:get(_components.chain)
-    self:draw_chain(chain, self.PLAYER:get(1):get(_components.health).current)
-  end
-
   for i = 1, self.DRAWABLE.size do
     local e = self.DRAWABLE:get(i)
     local position = e:get(_components.grid).position
@@ -353,6 +347,12 @@ function room:draw()
         self.tile_scale
       )
     end
+  end
+
+  for i = 1, self.HOOK_CHAIN.size do
+    local hook = self.HOOK_CHAIN:get(i)
+    local chain = hook:get(_components.chain)
+    self:draw_chain(chain, self.PLAYER:get(1):get(_components.health).current)
   end
 
   for i = 1, self.SELECTORS.size do

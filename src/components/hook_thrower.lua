@@ -3,6 +3,7 @@ local hook_thrower =
   function(e)
     e.can_throw = true
     e.direction = nil
+    e.max_length = _constants.PLAYER_HOOK_LENGTH
   end
 )
 

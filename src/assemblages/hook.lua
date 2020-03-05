@@ -1,7 +1,7 @@
 -- e is the Entity being assembled.
 -- cuteness and legs are variables passed in
 return Concord.assemblage(
-  function(e, origin, direction)
+  function(e, origin, direction, max_length)
     local head_sprite_quads = {
       [4] = _sprites.build_quad(0, 3),
       [3] = _sprites.build_quad(1, 3),
@@ -20,7 +20,7 @@ return Concord.assemblage(
 
     e:give(_components.grid, origin, true):give(_components.sprite, _sprites.sheet, head_sprite_quads, true):give(
       _components.chain,
-      3,
+      max_length,
       _sprites.sheet,
       chain_sprite_quads
     ):give(_components.head, direction)

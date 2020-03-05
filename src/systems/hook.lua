@@ -88,7 +88,8 @@ function hook:throw_hook(direction)
   _assemblages.hook:assemble(
     Concord.entity(self:getWorld()),
     player:get(_components.grid).position + direction_to_offset(direction),
-    direction
+    direction,
+    hook_thrower.max_length
   )
 
   player:get(_components.selection):reset()
