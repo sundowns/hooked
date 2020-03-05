@@ -15,6 +15,7 @@ function game:init()
 end
 
 function game:enter()
+  _worlds.game:emit("reset")
   _worlds.game:emit("next_room", _constants.PLAYER_STARTING_HEALTH, 1)
 end
 

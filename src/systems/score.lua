@@ -2,15 +2,21 @@
 
 local score = Concord.system()
 function score:init()
-  self.defeat = false
-  self.timer = Timer.new()
-  self.floor_counter = 1
-  self.victory_pulse = {}
   self.pulse_lifespan = 1
   self.text = {
     ["SCORE"] = love.graphics.newText(_fonts["FLOOR_COUNTER"], "FLOOR #1"),
     ["DEFEAT"] = love.graphics.newText(_fonts["GAME_OVER"], "GAME OVER")
   }
+  self:reset()
+end
+
+function score:reset()
+  print('what the actual fuck')
+  self.defeat = false
+  self.timer = Timer.new()
+  self.floor_counter = 1
+  self.victory_pulse = {}
+  self.text["SCORE"]:set("FLOOR #" .. self.floor_counter)
   self:reset_pulse()
 end
 
@@ -87,7 +93,7 @@ end
 function score:draw_ui()
   love.graphics.draw(self.text["SCORE"], love.graphics.getWidth() / 2 - self.text["SCORE"]:getWidth() / 2, 50)
   if self.defeat then
-    love.graphics.setColor(0.443, 0.09, 0.09)
+    love.graphics.setColor(0.965, 0.20, 0.388)
     love.graphics.draw(
       self.text["DEFEAT"],
       love.graphics.getWidth() / 2 - self.text["DEFEAT"]:getWidth() / 2,
