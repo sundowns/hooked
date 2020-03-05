@@ -48,6 +48,9 @@ end
 function enemies:action_top_enemy()
   -- pop enemy from our table
   local enemy = table.remove(self.enemies_to_action, 1)
+  if enemy:get(_components.enemy).marked_for_deletion then
+    return
+  end
   local brain = enemy:get(_components.brain)
   if brain.type == "goblin" then
     -- choose an action with their BRAIN
@@ -82,6 +85,7 @@ function enemies:action_goblin(e)
 
   if choice ~= "wait" then
     self:getWorld():emit("attempt_entity_move", e, choice)
+    print("goblin move")
   end
 end
 

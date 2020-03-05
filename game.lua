@@ -1,5 +1,5 @@
 game = {}
-_DEBUG = false
+_DEBUG = true
 
 function game:init()
   love.graphics.setBackgroundColor(0.05, 0.1, 0.1)

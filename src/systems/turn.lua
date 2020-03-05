@@ -17,6 +17,7 @@ function turn:init()
     ["PASS"] = love.graphics.newText(_fonts["PASS"], "Press [SPACE] again to PASS"),
     ["PHASES"] = {}
   }
+  self.exit_reached = false
 
   for i, phase in ipairs(self.phases) do
     self.text["PHASES"][phase] = love.graphics.newText(_fonts["PHASES"], phase)
@@ -25,6 +26,9 @@ end
 
 function turn:action_pressed(action, e)
   if not e:has(_components.control) or not e:has(_components.selection) then
+    return
+  end
+  if self.exit_reached then
     return
   end
   if (action == "end_turn" or action == "back") and self.phases[self.phase_index] ~= "PLAYER" then
@@ -69,12 +73,21 @@ function turn:end_player_phase(e)
   end
 end
 
+function turn:exit_reached()
+  self.exit_reached = true
+end
+
+function turn:next_room()
+  self.exit_reached = false
+end
+
 function turn:end_phase(current)
   assert(current, "received nil phase to turn:end_phase")
   if current ~= self.phases[self.phase_index] then
     -- ignore that
     return
   end
+
   self.phase_index = self.phase_index + 1
   if self.phase_index > #self.phases then
     self:getWorld():emit("turn_ended")

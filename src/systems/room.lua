@@ -3,7 +3,8 @@ local room =
   {_components.grid, "ALL"},
   {_components.grid, _components.sprite, "DRAWABLE"},
   {_components.control, _components.grid, "PLAYER"},
-  {_components.chain, _components.head, "HOOK_CHAIN"}
+  {_components.chain, _components.head, "HOOK_CHAIN"},
+  {_components.grid, _components.selection, "SELECTORS"}
 )
 
 local _TILE_LOOKUP = {
@@ -207,9 +208,9 @@ function room:move_entity(e, direction)
 
     if self:get_tile_at(grid.position.x, grid.position.y).name == "exit" then
       self:getWorld():emit("exit_reached", self:get_screen_coords(grid.position), e:get(_components.health).current)
+    else
+      self:getWorld():emit("end_phase", "PLAYER")
     end
-    self:getWorld():emit("end_phase", "PLAYER")
-    return
   end
 end
 
@@ -245,8 +246,11 @@ function room:hook_collided_with_something(hook, direction)
   local occupant = self:get_occupant(collided_at.x, collided_at.y)
   if occupant then
     if occupant:has(_components.enemy) then
-      self:getWorld():removeEntity(occupant)
       self:set_occupancy(collided_at.x, collided_at.y, nil)
+      occupant:get(_components.enemy):mark_for_deletion()
+      self:getWorld():removeEntity(occupant)
+      print("hook hit enemy")
+      -- no need to unset occupancy for enemy here
       self:move_entity(hook, direction)
     end
   else
@@ -263,6 +267,7 @@ function room:enemy_collided_with_something(enemy, direction)
     if occupant:has(_components.control) then
       self:getWorld():emit("reduce")
     elseif occupant:has(_components.head) then
+      print("enemy hit hook")
       self:set_occupancy(position.x, position.y, nil)
       self:getWorld():removeEntity(enemy)
     end
@@ -283,6 +288,7 @@ function room:attempt_hook_throw(e, direction)
       -- we tried to place hook on an enemy, kill it and place the hook there anyway!
       if occupant:has(_components.enemy) then
         self:getWorld():removeEntity(occupant)
+        print("player threw hook into enemy")
         self:set_occupancy(attempted_position.x, attempted_position.y, nil)
         self:getWorld():emit("throw_hook", direction)
       end
@@ -347,15 +353,17 @@ function room:draw()
         self.tile_scale
       )
     end
+  end
 
-    if e:has(_components.selection) then
-      local selection = e:get(_components.selection)
-      if selection.direction_sprite then
-        self:draw_directional_arrow(position, selection, "right")
-        self:draw_directional_arrow(position, selection, "down")
-        self:draw_directional_arrow(position, selection, "left")
-        self:draw_directional_arrow(position, selection, "up")
-      end
+  for i = 1, self.SELECTORS.size do
+    local e = self.SELECTORS:get(i)
+    local selection = e:get(_components.selection)
+    local position = e:get(_components.grid).position
+    if selection.direction_sprite then
+      self:draw_directional_arrow(position, selection, "right")
+      self:draw_directional_arrow(position, selection, "down")
+      self:draw_directional_arrow(position, selection, "left")
+      self:draw_directional_arrow(position, selection, "up")
     end
   end
 
@@ -367,7 +375,7 @@ function room:draw()
 end
 
 function room:draw_directional_arrow(player_position, selection, arrow_direction)
-  if self:validate_direction(player_position, arrow_direction) then
+  if self:validate_direction(player_position, arrow_direction, selection.action == "hook") then
     local draw_type = "move_default"
     if selection.direction == arrow_direction then
       if selection.action == "hook" then
@@ -455,9 +463,17 @@ function room:draw_debug()
   _util.l.reset_colour()
 end
 
-function room:validate_direction(position, direction)
+function room:validate_direction(position, direction, is_hook)
   local offset = direction_to_offset(direction)
-  if self:is_empty(position + offset) then
+  local new_position = position + offset
+
+  if is_hook then
+    local occupant = self:get_occupant(new_position.x, new_position.y)
+    if occupant and occupant:has(_components.enemy) then
+      return true
+    end
+  end
+  if self:is_empty(new_position) then
     return true
   else
     return false
