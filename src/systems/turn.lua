@@ -91,6 +91,9 @@ function turn:end_phase(current)
     -- ignore that
     return
   end
+  if self.gameplay_paused then
+    return
+  end
 
   self.phase_index = self.phase_index + 1
   if self.phase_index > #self.phases then
