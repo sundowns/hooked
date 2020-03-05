@@ -131,6 +131,7 @@ function room:load_room(layout_grid, player_health)
   )
 
   self.occupancy_map = {}
+  self.enemies_to_spawn = {}
   local player_spawn = Vector(0, 0)
   for y, row in ipairs(self.grid) do
     self.occupancy_map[y] = {}
@@ -138,15 +139,20 @@ function room:load_room(layout_grid, player_health)
       self:set_occupancy(x - 1, y - 1, nil)
       if tile_id == 0 then
         player_spawn = Vector(x - 1, y - 1)
+      elseif tile_id == 10 then
+        table.insert(self.enemies_to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
+        self.grid[y][x] = 1 -- make this a dirt block
       end
     end
   end
   _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn, player_health)
 
-  -- test enemies
-  -- TODO: loop over empty tiles (dirt), look for any > 1 square from the enemy and consider as eligible candidate for spawns
-  _assemblages.goblin:assemble(Concord.entity(self:getWorld()), Vector(0, 0))
-  _assemblages.goblin:assemble(Concord.entity(self:getWorld()), Vector(4, 2))
+  for i, to_spawn in ipairs(self.enemies_to_spawn) do
+    print(to_spawn.position)
+    if to_spawn.type == 10 then
+      _assemblages.goblin:assemble(Concord.entity(self:getWorld()), to_spawn.position)
+    end
+  end
 end
 
 function room:shake(duration, magnitude)

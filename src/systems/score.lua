@@ -11,7 +11,6 @@ function score:init()
 end
 
 function score:reset()
-  print('what the actual fuck')
   self.defeat = false
   self.timer = Timer.new()
   self.floor_counter = 1

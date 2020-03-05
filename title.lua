@@ -44,7 +44,7 @@ function title:draw()
   love.graphics.draw(
     self.text["START"],
     love.graphics.getWidth() / 2 - self.text["START"]:getWidth() / 2,
-    love.graphics.getHeight() / 2 - self.text["START"]:getHeight() / 2
+    love.graphics.getHeight() * 3 / 4 - self.text["START"]:getHeight() / 2
   )
 
   if self.high_score > 0 then
