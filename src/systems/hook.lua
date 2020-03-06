@@ -104,7 +104,7 @@ function hook:begin_phase(phase)
   end
 
   self.delay_timer:after(
-    0.5,
+    0.25,
     function()
       self.is_active = true
     end

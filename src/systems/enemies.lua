@@ -9,7 +9,7 @@ function enemies:init()
   self.enemies_to_action = {}
   self.current_phase = nil
   self.active = false
-  self.turn_duration = 1
+  self.turn_duration = 0.5
 end
 
 function enemies:update(dt)

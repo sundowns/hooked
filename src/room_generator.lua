@@ -60,18 +60,26 @@ function generator:generate(floor_count)
     self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_enemies(difficulty):build()
 
   -- check the level is actually winnable
-  if self:validate_layout() then
+  if self:validate_floor() then
     return layout
   else
     return self:generate(floor_count)
   end
 end
 
-function generator:validate_layout()
+function generator:validate_floor()
+  if self.layout[self.player_spawn_position.y][self.player_spawn_position.x] ~= 0 then
+    print("Grid is missing player spawn, INVALID")
+    return false
+  end
+
+  return self:can_reach_exit(self.player_spawn_position)
+end
+
+function generator:can_reach_exit(start_position)
   --[[
-    * get player spawn (self.player_spawn_position)
     * create empty open set (cells to check)
-    * add player spawn to open set
+    * add start to open set
     * while open_set is not empty
       * grab element of open_set (oldest)
       * for each of element's neighbours
@@ -80,12 +88,6 @@ function generator:validate_layout()
         * if neighbour is an empty tile AND not the tile we came from
           * add this tile to openset (and record the current tile as the tile we 'came from')
   ]]
-  -- assert player spawn exists
-  if self.layout[self.player_spawn_position.y][self.player_spawn_position.x] ~= 0 then
-    print("Grid is missing player spawn, INVALID")
-    return false
-  end
-
   local open_set = {}
   function add_to_open_set(position)
     table.insert(
@@ -104,30 +106,71 @@ function generator:validate_layout()
   end
 
   -- add spawn point as search origin
-  add_to_open_set(self.player_spawn_position, nil)
+  add_to_open_set(start_position)
   local goal_found = false
+
   while #open_set > 0 and not goal_found do
     -- pop the oldest node
     local current = table.remove(open_set)
+    add_to_visited(current.position)
 
     for i, neighbour in pairs(self:get_neighbours(current)) do
       local neighbour_type = self.layout[neighbour.position.y][neighbour.position.x]
       -- it's the goal, a valid path exists
       if neighbour_type == 3 then
         goal_found = true
-        break
       end
-      -- its traversable and NOT visisted --TODO:
-      if self:is_traversable_tile(neighbour_type) then
-      --add to set (see psuedo code above)
+      -- its traversable and NOT visisted
+      if self:is_traversable_tile(neighbour_type) and not is_visited(neighbour.position) then
+        add_to_open_set(neighbour.position)
       end
     end
   end
 
-  return true
+  return goal_found
 end
 
 function generator:get_neighbours(current_node)
+  local position = current_node.position
+  assert(position and position.x and position.y)
+  local neighbours = {}
+  -- LEFT
+  if position.x - 1 > 0 and self:is_traversable_tile(self.layout[position.y][position.x - 1]) then
+    table.insert(
+      neighbours,
+      {
+        position = Vector(position.x - 1, position.y)
+      }
+    )
+  end
+  -- RIGHT
+  if position.x + 1 <= self.cols and self:is_traversable_tile(self.layout[position.y][position.x + 1]) then
+    table.insert(
+      neighbours,
+      {
+        position = Vector(position.x + 1, position.y)
+      }
+    )
+  end
+  -- TOP
+  if position.y - 1 > 0 and self:is_traversable_tile(self.layout[position.y - 1][position.x]) then
+    table.insert(
+      neighbours,
+      {
+        position = Vector(position.x, position.y - 1)
+      }
+    )
+  end
+  -- BOTTOM
+  if position.y + 1 <= self.rows and self:is_traversable_tile(self.layout[position.y + 1][position.x]) then
+    table.insert(
+      neighbours,
+      {
+        position = Vector(position.x, position.y + 1)
+      }
+    )
+  end
+  return neighbours
 end
 
 function generator:add_extra_walls(difficulty)
@@ -277,7 +320,7 @@ function generator:is_sacred_tile(id)
 end
 
 function generator:is_traversable_tile(id)
-  return id == 1 or id == 10 -- (TODO: add keys/health pickups as well if added)
+  return id == 1 or id == 3 or id == 10 -- (TODO: add keys/health pickups as well if added)
 end
 
 function generator:get_difficulty(floor_count)
@@ -318,7 +361,7 @@ end
 
 function generator:get_template_count(difficulty)
   if difficulty == "EASIER" then
-    return love.math.random(2, 4)
+    return love.math.random(3, 5)
   elseif difficulty == "EASY" then
     return love.math.random(6, 8)
   elseif difficulty == "REGULAR" then
