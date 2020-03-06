@@ -6,7 +6,7 @@ local load_timer = 0
 
 function loading:init()
   love.graphics.setDefaultFilter("nearest", "nearest", 4)
-  love.graphics.setBackgroundColor(0.05, 0.1, 0.1)
+  love.graphics.setBackgroundColor(9.7 / 255, 7 / 255, 10.5 / 255) -- (13, 9, 7)
   splash_screen = love.graphics.newImage("resources/misc/splashscreen.png")
 end
 

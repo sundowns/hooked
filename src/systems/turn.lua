@@ -112,7 +112,6 @@ end
 function turn:begin_turn()
   self.phase_index = 1
   self.turn_count = self.turn_count + 1
-  print("Begin turn: " .. self.turn_count) -- TODO: nuke
   local player = self.PLAYER:get(1)
   if player then
     local selection = player:get(_components.selection)

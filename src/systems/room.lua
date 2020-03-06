@@ -203,7 +203,7 @@ function room:move_entity(e, direction)
 
   -- Fire event if player was one that moved:
   if e:get(_components.control) then
-    self:getWorld():emit("shake", 0.15, 0.5)
+    self:getWorld():emit("shake", 0.15, 0.15)
     -- check if chain is out, if so remove last link
     local hook_thrower = e:get(_components.hook_thrower)
     if not hook_thrower.can_throw then
