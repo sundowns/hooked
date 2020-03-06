@@ -68,7 +68,66 @@ function generator:generate(floor_count)
 end
 
 function generator:validate_layout()
+  --[[
+    * get player spawn (self.player_spawn_position)
+    * create empty open set (cells to check)
+    * add player spawn to open set
+    * while open_set is not empty
+      * grab element of open_set (oldest)
+      * for each of element's neighbours
+        * if neighbour is the exit 
+          * there is a valid path. break out of the loop
+        * if neighbour is an empty tile AND not the tile we came from
+          * add this tile to openset (and record the current tile as the tile we 'came from')
+  ]]
+  -- assert player spawn exists
+  if self.layout[self.player_spawn_position.y][self.player_spawn_position.x] ~= 0 then
+    print("Grid is missing player spawn, INVALID")
+    return false
+  end
+
+  local open_set = {}
+  function add_to_open_set(position)
+    table.insert(
+      open_set,
+      {
+        ["position"] = position
+      }
+    )
+  end
+  local visisted = {}
+  function add_to_visited(position)
+    visisted[position.x .. "," .. position.y] = true
+  end
+  function is_visited(position)
+    return visisted[position.x .. "," .. position.y]
+  end
+
+  -- add spawn point as search origin
+  add_to_open_set(self.player_spawn_position, nil)
+  local goal_found = false
+  while #open_set > 0 and not goal_found do
+    -- pop the oldest node
+    local current = table.remove(open_set)
+
+    for i, neighbour in pairs(self:get_neighbours(current)) do
+      local neighbour_type = self.layout[neighbour.position.y][neighbour.position.x]
+      -- it's the goal, a valid path exists
+      if neighbour_type == 3 then
+        goal_found = true
+        break
+      end
+      -- its traversable and NOT visisted --TODO:
+      if self:is_traversable_tile(neighbour_type) then
+      --add to set (see psuedo code above)
+      end
+    end
+  end
+
   return true
+end
+
+function generator:get_neighbours(current_node)
 end
 
 function generator:add_extra_walls(difficulty)
@@ -123,7 +182,7 @@ end
 -- apply the template matrix at that random point
 function generator:apply_templates(difficulty)
   local template_count = self:get_template_count(difficulty)
-  print("applying " .. template_count .. " templates")
+  print("Applying " .. template_count .. " templates")
 
   for i = 1, template_count do
     -- Pick a 3x3 random template (for now)
@@ -169,7 +228,7 @@ end
 
 function generator:add_exit()
   local edge = _opposite_edge[self.chosen_spawn_edge]
-  print("exit edge: " .. edge)
+  print("Exit edge: " .. edge)
   local x, y = 1, 1
   if edge == "LEFT" then
     y = love.math.random(1, self.rows)
@@ -188,7 +247,7 @@ end
 
 function generator:add_spawn()
   self.chosen_spawn_edge = _util.g.choose("LEFT", "TOP", "RIGHT", "BOTTOM")
-  print("spawn edge: " .. self.chosen_spawn_edge)
+  print("Spawn edge: " .. self.chosen_spawn_edge)
   local x, y = 1, 1
   if self.chosen_spawn_edge == "LEFT" then
     y = love.math.random(1, self.rows)
@@ -215,6 +274,10 @@ end
 -- Whether or not this tile can be overriden by templates/random walls (spawns and exits shouldnt be)
 function generator:is_sacred_tile(id)
   return id == 0 or id == 3
+end
+
+function generator:is_traversable_tile(id)
+  return id == 1 or id == 10 -- (TODO: add keys/health pickups as well if added)
 end
 
 function generator:get_difficulty(floor_count)

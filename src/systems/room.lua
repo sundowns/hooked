@@ -122,7 +122,6 @@ end
 function room:load_room(layout_grid, player_health)
   local rows = #layout_grid
   local cols = #layout_grid[1]
-  print("loading room: " .. rows .. "x" .. cols)
   self.grid = layout_grid
   self.grid_origin =
     Vector(
