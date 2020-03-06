@@ -117,17 +117,21 @@ function turn:begin_turn()
     local selection = player:get(_components.selection)
     local direction_held = false
     local control = player:get(_components.control)
+    local held_direction = nil
     if control.is_held["left"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["down"]) then
-      selection:set_direction("left")
+      held_direction = "left"
     end
     if control.is_held["right"] and not (control.is_held["left"] or control.is_held["up"] or control.is_held["down"]) then
-      selection:set_direction("right")
+      held_direction = "right"
     end
     if control.is_held["up"] and not (control.is_held["right"] or control.is_held["left"] or control.is_held["down"]) then
-      selection:set_direction("up")
+      held_direction = "up"
     end
     if control.is_held["down"] and not (control.is_held["right"] or control.is_held["up"] or control.is_held["left"]) then
-      selection:set_direction("down")
+      held_direction = "down"
+    end
+    if held_direction then
+      self:getWorld():emit("test_direction_is_valid", player, held_direction)
     end
   end
 end
@@ -141,17 +145,19 @@ function turn:make_selection(action, e)
       selection:set_action(action)
     end
   elseif selection.all_directions[action] then
-    -- selection:set_direction(action)
     self:getWorld():emit("test_direction_is_valid", e, action)
   end
 end
 
-function turn:direction_is_valid(player, direction)
+function turn:report_player_direction_validity(player, direction, is_valid)
   if not (player:has(_components.control) and player:has(_components.selection)) then
     return
   end
-
-  player:get(_components.selection):set_direction(direction)
+  if is_valid then
+    player:get(_components.selection):set_direction(direction)
+  else
+    player:get(_components.selection):reset()
+  end
 end
 
 function turn:invalid_directional_action()

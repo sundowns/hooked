@@ -31,7 +31,7 @@ function game:draw()
   if _DEBUG then
     love.graphics.setColor(1, 1, 0)
     _worlds.game:emit("draw_debug")
-    _util.l.render_stats(0, love.graphics.getHeight() / 2)
+    _util.l.render_stats(0, love.graphics.getHeight() * 2 / 3)
 
     -- marker for screen centre
     love.graphics.circle("fill", love.graphics.getWidth() / 2, love.graphics.getHeight() / 2, 2)

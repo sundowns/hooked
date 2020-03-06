@@ -37,7 +37,7 @@ local _opposite_edge = {
   ["TOP"] = "BOTTOM"
 }
 
-function generator:generate(floor_count)
+function generator:generate_room(floor_count)
   local difficulty = self:get_difficulty(floor_count)
   -- local difficulty = "EASIER"
   -- local difficulty = "EASY"
@@ -61,10 +61,76 @@ function generator:generate(floor_count)
 
   -- check the level is actually winnable
   if self:validate_floor() then
-    return layout
+    return layout, self:generate_navigation_map(self.player_spawn_position)
   else
-    return self:generate(floor_count)
+    return self:generate_room(floor_count)
   end
+end
+
+function generator:generate_navigation_map(start_position)
+  --[[
+      * create empty open set (cells to check)
+      * add start to open set
+      * while open_set is not empty
+        * grab element of open_set (oldest)
+        * for each of element's neighbours
+          * if neighbour is an empty tile AND not the tile we came from
+            * add this tile to openset (and record the current tile as the tile we 'came from')
+    ]]
+  -- initialise empty nav mesh with all tiles 'invalid'
+  local nav_mesh = {}
+  for y = 1, self.rows do
+    nav_mesh[y] = {}
+    for x = 1, self.cols do
+      nav_mesh[y][x] = -1
+    end
+  end
+
+  local open_set = {}
+  function add_to_open_set(position, distance)
+    table.insert(
+      open_set,
+      {
+        ["position"] = position,
+        ["distance"] = distance or 0
+      }
+    )
+  end
+  local visited = {}
+  function add_to_visited(node)
+    visited[node.position.x .. "," .. node.position.y] = node
+  end
+  function get_distance(position)
+    if visited[position.x .. "," .. position.y] then
+      return visited[position.x .. "," .. position.y].distance
+    end
+    return 1000000000
+  end
+
+  -- add spawn point as search origin
+  add_to_open_set(start_position)
+  local goal_found = false
+
+  while #open_set > 0 do
+    -- pop the oldest node
+    local current = table.remove(open_set)
+    add_to_visited(current)
+
+    for i, neighbour in pairs(self:get_neighbours(current)) do
+      local neighbour_type = self.layout[neighbour.position.y][neighbour.position.x]
+      -- its traversable
+      if self:is_traversable_tile(neighbour_type) and (current.distance + 1 < get_distance(neighbour.position)) then
+        add_to_open_set(neighbour.position, current.distance + 1)
+      end
+    end
+  end
+
+  -- iterate over visited and set nav_mesh values
+  for _, node in pairs(visited) do
+    nav_mesh[node.position.y][node.position.x] = node.distance
+  end
+
+  return nav_mesh
 end
 
 function generator:validate_floor()
@@ -97,12 +163,12 @@ function generator:can_reach_exit(start_position)
       }
     )
   end
-  local visisted = {}
+  local visited = {}
   function add_to_visited(position)
-    visisted[position.x .. "," .. position.y] = true
+    visited[position.x .. "," .. position.y] = true
   end
   function is_visited(position)
-    return visisted[position.x .. "," .. position.y]
+    return visited[position.x .. "," .. position.y]
   end
 
   -- add spawn point as search origin
@@ -198,7 +264,7 @@ function generator:add_enemies(difficulty)
     local selection = nil
 
     local attempts = 0
-    local max_attempts = 10
+    local max_attempts = 15
     while selected_tile ~= 1 and attempts <= max_attempts do
       selection = Vector(love.math.random(1, self.cols), love.math.random(1, self.rows))
       local distance_from_spawn =

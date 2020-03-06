@@ -10,6 +10,11 @@ function enemies:init()
   self.current_phase = nil
   self.active = false
   self.turn_duration = 0.5
+  self.navigation_map = nil
+end
+
+function enemies:navigation_map_generated(navigation_map)
+  self.navigation_map = navigation_map
 end
 
 function enemies:update(dt)
@@ -61,27 +66,75 @@ function enemies:action_top_enemy()
   end
 end
 
+function enemies:draw_debug()
+  if self.navigation_map then
+    for y = 1, #self.navigation_map do
+      for x = 1, #self.navigation_map[y] do
+        love.graphics.print(self.navigation_map[y][x], 30 * x, 30 * y)
+      end
+    end
+  end
+end
+
 function enemies:action_goblin(e)
-  local enemy_grid = e:get(_components.grid)
-
-  local player = self.PLAYER:get(1)
-  local player_grid = player:get(_components.grid)
-
-  local delta = player_grid.position - enemy_grid.position
+  local enemy_pos = e:get(_components.grid).position
+  local adjusted_pos = Vector(enemy_pos.x + 1, enemy_pos.y + 1)
+  local current_distance = self.navigation_map[adjusted_pos.y][adjusted_pos.x]
   local choices = {{"wait", 1}}
 
-  if delta.x > 0 then
-    table.insert(choices, {"right", 5})
+  if
+    adjusted_pos.x - 1 > 0 and self.navigation_map[adjusted_pos.y][adjusted_pos.x - 1] ~= -1 and
+      self.navigation_map[adjusted_pos.y][adjusted_pos.x - 1] < current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "left",
+        5
+      }
+    )
   end
-  if delta.x < 0 then
-    table.insert(choices, {"left", 5})
+  -- RIGHT
+  if
+    adjusted_pos.x + 1 <= #self.navigation_map[adjusted_pos.y] and
+      self.navigation_map[adjusted_pos.y][adjusted_pos.x + 1] ~= -1 and
+      self.navigation_map[adjusted_pos.y][adjusted_pos.x + 1] < current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "right",
+        5
+      }
+    )
   end
-  if delta.y > 0 then
-    table.insert(choices, {"down", 5})
+  -- TOP
+  if
+    adjusted_pos.y - 1 > 0 and self.navigation_map[adjusted_pos.y - 1][adjusted_pos.x] ~= -1 and
+      self.navigation_map[adjusted_pos.y - 1][adjusted_pos.x] < current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "up",
+        5
+      }
+    )
   end
-  if delta.y < 0 then
-    table.insert(choices, {"up", 5})
+  -- BOTTOM
+  if
+    adjusted_pos.y + 1 <= #self.navigation_map and self.navigation_map[adjusted_pos.y + 1][adjusted_pos.x] ~= -1 and
+      self.navigation_map[adjusted_pos.y + 1][adjusted_pos.x] < current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "down",
+        5
+      }
+    )
   end
+
   local choice = _util.g.choose_weighted(unpack(choices))
 
   if choice ~= "wait" then

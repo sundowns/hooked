@@ -114,9 +114,10 @@ end
 
 function room:next_room(player_health, current_floor)
   self:getWorld():clear()
-  local room = self.generator:generate(current_floor)
+  local room, navigation_map = self.generator:generate_room(current_floor)
   self:load_room(room, player_health)
   self:getWorld():emit("room_loaded")
+  self:getWorld():emit("navigation_map_generated", navigation_map)
 end
 
 function room:load_room(layout_grid, player_health)
@@ -138,6 +139,7 @@ function room:load_room(layout_grid, player_health)
       self:set_occupancy(x - 1, y - 1, nil)
       if tile_id == 0 then
         player_spawn = Vector(x - 1, y - 1)
+        self.grid[y][x] = 1 -- make this a dirt block
       elseif tile_id == 10 then
         table.insert(self.enemies_to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
         self.grid[y][x] = 1 -- make this a dirt block
@@ -213,6 +215,10 @@ function room:move_entity(e, direction)
     if self:get_tile_at(grid.position.x, grid.position.y).name == "exit" then
       self:getWorld():emit("exit_reached", self:get_screen_coords(grid.position), e:get(_components.health).current)
     else
+      self:getWorld():emit(
+        "navigation_map_generated",
+        self.generator:generate_navigation_map(Vector(grid.position.x + 1, grid.position.y + 1), self.grid)
+      )
       self:getWorld():emit("end_phase", "PLAYER")
     end
   end
@@ -229,69 +235,58 @@ function room:attempt_entity_move(e, direction)
   if not e:has(_components.grid) then
     return
   end
-  if self:validate_direction(e:get(_components.grid).position, direction) then
-    self:move_entity(e, direction)
-  else
-    if e:has(_components.head) then
-      -- its a hook, check if we collided with an enemy/obstacle of some kind
-      self:hook_collided_with_something(e, direction)
-    elseif e:has(_components.enemy) then
-      self:enemy_collided_with_something(e, direction)
-    elseif e:has(_components.control) then
-      self:player_collided_with_something(e, direction)
-    end
-  end
-end
-
-function room:player_collided_with_something(player, direction)
-  local position = player:get(_components.grid).position
-  local collided_at = position + direction_to_offset(direction)
-  local occupant = self:get_occupant(collided_at.x, collided_at.y)
-  if occupant then
-    if (occupant:has(_components.chain) and occupant:get(_components.chain):get_length() == 0) then
-      self:set_occupancy(collided_at.x, collided_at.y, nil)
-      self:getWorld():removeEntity(occupant)
-      player:get(_components.hook_thrower):reset()
-      self:move_entity(player, direction)
+  if self:validate_direction(e, direction) then
+    local target_pos = e:get(_components.grid).position + direction_to_offset(direction)
+    local occupant = self:get_occupant(target_pos.x, target_pos.y)
+    if occupant then
+      if e:has(_components.head) then
+        self:hook_collided_with_something(e, occupant, target_pos, direction)
+      elseif e:has(_components.enemy) then
+        self:enemy_collided_with_something(e, occupant, target_pos)
+      elseif e:has(_components.control) then
+        self:player_collided_with_something(e, occupant, target_pos, direction)
+      end
     else
-      -- TODO: handle item pickup
-      print("player collided with some non-hook entity")
+      self:move_entity(e, direction)
     end
   else
-    --TODO: invalid move SFX
-    self:getWorld():emit("invalid_entity_move", player)
-    self:getWorld():emit("invalid_directional_action")
+    self:getWorld():emit("invalid_entity_move", e)
+    if e:has(_components.control) then
+      self:getWorld():emit("invalid_directional_action")
+    end
   end
 end
 
-function room:hook_collided_with_something(hook, direction)
-  local collided_at = hook:get(_components.grid).position + direction_to_offset(direction)
-  local occupant = self:get_occupant(collided_at.x, collided_at.y)
-  if occupant then
-    if occupant:has(_components.enemy) then
-      self:set_occupancy(collided_at.x, collided_at.y, nil)
-      occupant:get(_components.enemy):mark_for_deletion()
-      self:getWorld():removeEntity(occupant)
-      -- no need to unset occupancy for enemy here
-      self:move_entity(hook, direction)
-    end
+function room:player_collided_with_something(player, occupant, collided_at, direction)
+  if (occupant:has(_components.chain) and occupant:get(_components.chain):get_length() == 0) then
+    self:move_entity(player, direction)
+    self:set_occupancy(collided_at.x, collided_at.y, nil)
+    self:getWorld():removeEntity(occupant)
+    player:get(_components.hook_thrower):reset()
   else
-    self:getWorld():emit("invalid_entity_move", hook)
+    -- TODO: handle item pickup
+    print("player collided with some non-hook entity")
   end
 end
 
-function room:enemy_collided_with_something(enemy, direction)
+function room:hook_collided_with_something(hook, occupant, collided_at, direction)
+  if occupant:has(_components.enemy) then
+    self:set_occupancy(collided_at.x, collided_at.y, nil)
+    occupant:get(_components.enemy):mark_for_deletion()
+    self:getWorld():removeEntity(occupant)
+    -- no need to unset occupancy for enemy here
+    self:move_entity(hook, direction)
+  end
+end
+
+function room:enemy_collided_with_something(enemy, occupant, collided_at)
   local position = enemy:get(_components.grid).position
-  local collided_at = position + direction_to_offset(direction)
-  local occupant = self:get_occupant(collided_at.x, collided_at.y)
 
-  if occupant then
-    if occupant:has(_components.control) then
-      self:getWorld():emit("reduce")
-    elseif occupant:has(_components.head) then
-      self:set_occupancy(position.x, position.y, nil)
-      self:getWorld():removeEntity(enemy)
-    end
+  if occupant:has(_components.control) then
+    self:getWorld():emit("reduce")
+  elseif occupant:has(_components.head) then
+    self:set_occupancy(position.x, position.y, nil)
+    self:getWorld():removeEntity(enemy)
   end
 end
 
@@ -300,22 +295,18 @@ function room:attempt_hook_throw(e, direction)
     return
   end
   local grid = e:get(_components.grid)
-  if self:validate_direction(grid.position, direction) then
-    self:getWorld():emit("throw_hook", direction)
-  else
+  if self:validate_direction(e, direction) then
     local attempted_position = grid.position + direction_to_offset(direction)
     local occupant = self:get_occupant(attempted_position.x, attempted_position.y)
-    if occupant then
-      -- we tried to place hook on an enemy, kill it and place the hook there anyway!
-      if occupant:has(_components.enemy) then
-        self:getWorld():removeEntity(occupant)
-        self:set_occupancy(attempted_position.x, attempted_position.y, nil)
-        self:getWorld():emit("throw_hook", direction)
-      end
-    else
-      --TODO: invalid move SFX
-      self:getWorld():emit("invalid_directional_action")
+    if occupant and occupant:has(_components.enemy) then
+      self:getWorld():removeEntity(occupant)
+      self:set_occupancy(attempted_position.x, attempted_position.y, nil)
     end
+
+    self:getWorld():emit("throw_hook", direction)
+  else
+    --TODO: invalid move SFX
+    self:getWorld():emit("invalid_directional_action")
   end
 end
 
@@ -377,13 +368,11 @@ function room:draw()
 
   for i = 1, self.SELECTORS.size do
     local e = self.SELECTORS:get(i)
-    local selection = e:get(_components.selection)
-    local position = e:get(_components.grid).position
-    if selection.direction_sprite then
-      self:draw_directional_arrow(position, selection, "right")
-      self:draw_directional_arrow(position, selection, "down")
-      self:draw_directional_arrow(position, selection, "left")
-      self:draw_directional_arrow(position, selection, "up")
+    if e:get(_components.selection).direction_sprite then
+      self:draw_directional_arrow(e, "right")
+      self:draw_directional_arrow(e, "down")
+      self:draw_directional_arrow(e, "left")
+      self:draw_directional_arrow(e, "up")
     end
   end
 
@@ -394,8 +383,10 @@ function room:draw()
   end
 end
 
-function room:draw_directional_arrow(player_position, selection, arrow_direction)
-  if self:validate_direction(player_position, arrow_direction, selection.action == "hook") then
+function room:draw_directional_arrow(player, arrow_direction)
+  local selection = player:get(_components.selection)
+  local position = player:get(_components.grid).position
+  if self:validate_direction(player, arrow_direction) then
     local draw_type = "move_default"
     if selection.direction == arrow_direction then
       if selection.action == "hook" then
@@ -413,7 +404,7 @@ function room:draw_directional_arrow(player_position, selection, arrow_direction
 
     self:draw_arrow_sprite(
       selection.direction_sprite,
-      player_position + direction_to_offset(arrow_direction),
+      position + direction_to_offset(arrow_direction),
       direction_to_rotation(arrow_direction),
       draw_type
     )
@@ -483,19 +474,30 @@ function room:draw_debug()
   _util.l.reset_colour()
 end
 
-function room:validate_direction(position, direction, is_hook, is_player)
+function room:validate_direction(entity, direction)
+  local position = entity:get(_components.grid).position
   local offset = direction_to_offset(direction)
   local new_position = position + offset
+  local occupant = self:get_occupant(new_position.x, new_position.y)
 
-  if is_hook then
-    local occupant = self:get_occupant(new_position.x, new_position.y)
+  if entity:has(_components.head) then
     if occupant and occupant:has(_components.enemy) then
       return true
     end
   end
-  if is_player then
-    local occupant = self:get_occupant(new_position.x, new_position.y)
-    if occupant and occupant:has(_components.head) then
+  if entity:has(_components.enemy) then
+    if occupant and (occupant:has(_components.control) or occupant:has(_components.head)) then
+      return true
+    end
+  end
+  if entity:has(_components.control) then
+    local selection = entity:get(_components.selection)
+    if
+      occupant and
+        ((selection.action == "move" and occupant:has(_components.head) and
+          occupant:get(_components.chain):get_length() == 0) or
+          (selection.action == "hook" and occupant:has(_components.enemy)))
+     then
       return true
     end
   end
@@ -508,15 +510,10 @@ end
 
 function room:test_direction_is_valid(entity, direction)
   assert(entity:has(_components.grid))
-  if
-    self:validate_direction(
-      entity:get(_components.grid).position,
-      direction,
-      entity:has(_components.head),
-      entity:has(_components.control)
-    )
-   then
-    self:getWorld():emit("direction_is_valid", entity, direction)
+  if self:validate_direction(entity, direction) then
+    self:getWorld():emit("report_player_direction_validity", entity, direction, true)
+  else
+    self:getWorld():emit("report_player_direction_validity", entity, direction, false)
   end
 end
 
