@@ -43,7 +43,7 @@ function enemies:begin_phase(phase)
 
   self.process_enemy_callback_fn =
     self.timer:every(
-    self.turn_duration / self.ENEMIES.size,
+    math.min(self.turn_duration / self.ENEMIES.size, self.turn_duration / 2),
     function()
       self:action_top_enemy()
     end,

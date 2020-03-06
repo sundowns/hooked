@@ -114,7 +114,8 @@ end
 
 function room:next_room(player_health, current_floor)
   self:getWorld():clear()
-  local room, navigation_map = self.generator:generate_room(current_floor)
+  local room, navigation_map =
+    self.generator:generate_room(current_floor, player_health, _constants.PLAYER_STARTING_HEALTH)
   self:load_room(room, player_health)
   self:getWorld():emit("room_loaded")
   self:getWorld():emit("navigation_map_generated", navigation_map)
@@ -131,7 +132,7 @@ function room:load_room(layout_grid, player_health)
   )
 
   self.occupancy_map = {}
-  self.enemies_to_spawn = {}
+  self.to_spawn = {}
   local player_spawn = Vector(0, 0)
   for y, row in ipairs(self.grid) do
     self.occupancy_map[y] = {}
@@ -141,16 +142,21 @@ function room:load_room(layout_grid, player_health)
         player_spawn = Vector(x - 1, y - 1)
         self.grid[y][x] = 1 -- make this a dirt block
       elseif tile_id == 10 then
-        table.insert(self.enemies_to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
+        table.insert(self.to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
+        self.grid[y][x] = 1 -- make this a dirt block
+      elseif tile_id >= 20 and tile_id <= 23 then
+        table.insert(self.to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
         self.grid[y][x] = 1 -- make this a dirt block
       end
     end
   end
   _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn, player_health)
 
-  for i, to_spawn in ipairs(self.enemies_to_spawn) do
-    if to_spawn.type == 10 then
-      _assemblages.goblin:assemble(Concord.entity(self:getWorld()), to_spawn.position)
+  for i, spawner in ipairs(self.to_spawn) do
+    if spawner.type == 10 then
+      _assemblages.goblin:assemble(Concord.entity(self:getWorld()), spawner.position)
+    elseif spawner.type == 20 then
+      _assemblages.healthpack:assemble(Concord.entity(self:getWorld()), spawner.position)
     end
   end
 end
@@ -259,13 +265,21 @@ end
 
 function room:player_collided_with_something(player, occupant, collided_at, direction)
   if (occupant:has(_components.chain) and occupant:get(_components.chain):get_length() == 0) then
-    self:move_entity(player, direction)
     self:set_occupancy(collided_at.x, collided_at.y, nil)
+    self:move_entity(player, direction)
     self:getWorld():removeEntity(occupant)
     player:get(_components.hook_thrower):reset()
+  elseif occupant:has(_components.collectible) then
+    local collectible = occupant:get(_components.collectible)
+    if collectible.type == "health" then
+      self:getWorld():emit("increase_health")
+      self:getWorld():removeEntity(occupant)
+      self:move_entity(player, direction)
+    else
+      print("player picked up unknown collectible")
+    end
   else
-    -- TODO: handle item pickup
-    print("player collided with some non-hook entity")
+    print("player collided with some unknown entity") --TODO: nuke
   end
 end
 
@@ -276,6 +290,10 @@ function room:hook_collided_with_something(hook, occupant, collided_at, directio
     self:getWorld():removeEntity(occupant)
     -- no need to unset occupancy for enemy here
     self:move_entity(hook, direction)
+  elseif occupant:has(_components.collectible) then
+    print("hook picked up item")
+  else
+    print("hook hit something whack dawg")
   end
 end
 
@@ -283,10 +301,14 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at)
   local position = enemy:get(_components.grid).position
 
   if occupant:has(_components.control) then
-    self:getWorld():emit("reduce")
+    self:getWorld():emit("reduce_health")
   elseif occupant:has(_components.head) then
     self:set_occupancy(position.x, position.y, nil)
     self:getWorld():removeEntity(enemy)
+  elseif occupant:has(_components.collectible) then
+    print("enemy picked up item")
+  else
+    print("enemy hit something unknown")
   end
 end
 
@@ -348,14 +370,20 @@ function room:draw()
       quad = sprite.quads[self.PLAYER:get(1):get(_components.health).current]
     end
     if quad then
+      local scale_offset = 0
+      if sprite.scale ~= 1 then
+        -- this maths doesnt work for scales other than 0.5, so fuck you
+        scale_offset = ((_constants.TILE_SIZE * self.tile_scale * sprite.scale) / 2)
+      end
+
       love.graphics.draw(
         sprite.sheet,
         quad,
-        self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
-        self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale),
+        self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale) + scale_offset,
+        self.grid_origin.y + (position.y * _constants.TILE_SIZE * self.tile_scale) + scale_offset,
         0,
-        self.tile_scale,
-        self.tile_scale
+        self.tile_scale * sprite.scale,
+        self.tile_scale * sprite.scale
       )
     end
   end
@@ -481,12 +509,15 @@ function room:validate_direction(entity, direction)
   local occupant = self:get_occupant(new_position.x, new_position.y)
 
   if entity:has(_components.head) then
-    if occupant and occupant:has(_components.enemy) then
+    if occupant and (occupant:has(_components.enemy) or occupant:has(_components.collectible)) then
       return true
     end
   end
   if entity:has(_components.enemy) then
-    if occupant and (occupant:has(_components.control) or occupant:has(_components.head)) then
+    if
+      occupant and
+        (occupant:has(_components.control) or occupant:has(_components.head) or occupant:has(_components.collectible))
+     then
       return true
     end
   end
@@ -496,7 +527,8 @@ function room:validate_direction(entity, direction)
       occupant and
         ((selection.action == "move" and occupant:has(_components.head) and
           occupant:get(_components.chain):get_length() == 0) or
-          (selection.action == "hook" and occupant:has(_components.enemy)))
+          (selection.action == "hook" and occupant:has(_components.enemy)) or
+          occupant:has(_components.collectible))
      then
       return true
     end

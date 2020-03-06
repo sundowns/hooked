@@ -183,10 +183,6 @@ function turn:draw_ui()
     if selection.is_passing then
       prepare_text_to_draw(self.text["PASS"])
     else
-      -- if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
-      --   prepare_text_to_draw(self.text["BACK"])
-      -- end
-
       local hook_thrower = player:get(_components.hook_thrower)
       if hook_thrower.can_throw then
         if selection.action == "hook" then

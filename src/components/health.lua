@@ -12,4 +12,8 @@ function health:reduce(delta)
   end
 end
 
+function health:increase(delta)
+  self.current = math.min(self.current + delta, self.maximum)
+end
+
 return health

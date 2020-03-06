@@ -9,6 +9,10 @@ local generator = {}
       * '2' - wall 
       * '3' - exit 
       * '10' - empty with goblin
+      * '20' - healthpack
+      * '21' - key (orange)
+      * '22' - key (cyan)
+      * '23' - key (purple)
   PROCESS:
     * Determine difficulty
       Based on F#
@@ -37,7 +41,7 @@ local _opposite_edge = {
   ["TOP"] = "BOTTOM"
 }
 
-function generator:generate_room(floor_count)
+function generator:generate_room(floor_count, player_health, max_health)
   local difficulty = self:get_difficulty(floor_count)
   -- local difficulty = "EASIER"
   -- local difficulty = "EASY"
@@ -57,13 +61,17 @@ function generator:generate_room(floor_count)
 
   -- perform dark rituals
   local layout =
-    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_enemies(difficulty):build()
+    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_enemies(difficulty):add_health_packs(
+    difficulty,
+    player_health,
+    max_health
+  ):build()
 
   -- check the level is actually winnable
   if self:validate_floor() then
     return layout, self:generate_navigation_map(self.player_spawn_position)
   else
-    return self:generate_room(floor_count)
+    return self:generate_room(floor_count, player_health, max_health)
   end
 end
 
@@ -285,6 +293,44 @@ function generator:add_enemies(difficulty)
   return self
 end
 
+function generator:add_health_packs(difficulty, player_health, max_health)
+  local damage = max_health - player_health
+  local continue = true
+  -- if damage == 0 then --TODO: UNCOMMENT THIS LOL
+  --   continue = false -- don't spawn health
+  -- elseif player_health == 1 then
+  --   continue = love.math.random() > 0.5 -- 50% chance to spawn health
+  -- else
+  --   continue = love.math.random > 0.8 -- 20% chance to spawn health
+  -- end
+  -- if difficulty == "EASIER" then
+  --   continue = false
+  -- end
+
+  if not continue then
+    return self
+  end
+
+  print("Spawning a health pickup")
+  local selected_tile = -1
+  local selection = nil
+  local attempts = 0
+  local max_attempts = 20
+  while selected_tile ~= 1 and attempts <= max_attempts do
+    selection = Vector(love.math.random(1, self.cols), love.math.random(1, self.rows))
+    if self:can_reach_exit(selection) then
+      selected_tile = self.layout[selection.y][selection.x]
+    end
+    attempts = attempts + 1
+  end
+
+  if attempts <= max_attempts then
+    self.layout[selection.y][selection.x] = 20
+  end
+
+  return self
+end
+
 -- randomly pick a template
 -- randomly pick a point on the layout
 -- validate the layout wouldnt be replacing a spawn or exit block
@@ -386,7 +432,7 @@ function generator:is_sacred_tile(id)
 end
 
 function generator:is_traversable_tile(id)
-  return id == 1 or id == 3 or id == 10 -- (TODO: add keys/health pickups as well if added)
+  return id == 1 or id == 3 or id == 10 or (id >= 20 and id <= 23)
 end
 
 function generator:get_difficulty(floor_count)

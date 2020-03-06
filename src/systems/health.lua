@@ -28,7 +28,7 @@ function health:init()
   }
 end
 
-function health:reduce()
+function health:reduce_health()
   local player = self.PLAYER:get(1)
   local health = player:get(_components.health)
   health:reduce(1)
@@ -36,6 +36,12 @@ function health:reduce()
   if health.current <= 0 then
     self:getWorld():emit("player_died")
   end
+end
+
+function health:increase_health()
+  local player = self.PLAYER:get(1)
+  local health = player:get(_components.health)
+  health:increase(1)
 end
 
 function health:draw_debug()
