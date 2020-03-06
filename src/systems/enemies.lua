@@ -9,6 +9,7 @@ function enemies:init()
   self.enemies_to_action = {}
   self.current_phase = nil
   self.active = false
+  self.turn_duration = 1
 end
 
 function enemies:update(dt)
@@ -37,7 +38,7 @@ function enemies:begin_phase(phase)
 
   self.process_enemy_callback_fn =
     self.timer:every(
-    0.5,
+    self.turn_duration / self.ENEMIES.size,
     function()
       self:action_top_enemy()
     end,
@@ -70,22 +71,21 @@ function enemies:action_goblin(e)
   local choices = {{"wait", 1}}
 
   if delta.x > 0 then
-    table.insert(choices, {"right", 2})
+    table.insert(choices, {"right", 5})
   end
   if delta.x < 0 then
-    table.insert(choices, {"left", 2})
+    table.insert(choices, {"left", 5})
   end
   if delta.y > 0 then
-    table.insert(choices, {"down", 2})
+    table.insert(choices, {"down", 5})
   end
   if delta.y < 0 then
-    table.insert(choices, {"up", 2})
+    table.insert(choices, {"up", 5})
   end
   local choice = _util.g.choose_weighted(unpack(choices))
 
   if choice ~= "wait" then
     self:getWorld():emit("attempt_entity_move", e, choice)
-    print("goblin move")
   end
 end
 

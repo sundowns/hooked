@@ -10,7 +10,7 @@ function turn:init()
   }
   self.text = {
     ["HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[Z] - Select Hook"),
-    ["FIRE_HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Fire Hook"),
+    ["FIRE_HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE]: Fire Hook"),
     ["DIRECT"] = love.graphics.newText(_fonts["CONTROLS"], "[WASD/Arrows] - Select Direction"),
     ["MOVE"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Move"),
     ["BACK"] = love.graphics.newText(_fonts["CONTROLS"], "[ESCAPE] - Back"),
@@ -158,7 +158,7 @@ function turn:draw_ui()
     local selection = player:get(_components.selection)
     local text_to_draw = {}
     local control_text_width = 0
-    local buffer_width = 20
+    local buffer_width = 30
     function prepare_text_to_draw(text)
       table.insert(text_to_draw, text)
       control_text_width = control_text_width + text:getWidth() + buffer_width
@@ -197,21 +197,22 @@ function turn:draw_ui()
       love.graphics.draw(
         text,
         (love.graphics.getWidth() / 2) - (control_text_width / 2) + offset,
-        love.graphics.getHeight() - text:getHeight() * 2
+        love.graphics.getHeight() - text:getHeight() * 1.35
       )
       offset = offset + text:getWidth() + buffer_width
     end
   end
 
   -- draw phase tracker
-  local tracker_coords = Vector(0, 0)
+  local tracker_coords =
+    Vector(0, love.graphics.getHeight() / 2 - (#self.phases * _fonts["PHASES"]:getHeight() * 2 / 3))
   for i, phase_name in ipairs(self.phases) do
     local text = self.text["PHASES"][phase_name]
     if i == self.phase_index then
-      love.graphics.setColor(0, 1, 0)
+      love.graphics.setColor(_constants.COLOURS["GOLD"])
     end
     love.graphics.draw(text, tracker_coords.x, tracker_coords.y)
-    tracker_coords.y = tracker_coords.y + text:getHeight()
+    tracker_coords.y = tracker_coords.y + text:getHeight() * 1.5
     _util.l.reset_colour()
   end
 end

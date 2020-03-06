@@ -148,7 +148,6 @@ function room:load_room(layout_grid, player_health)
   _assemblages.player:assemble(Concord.entity(self:getWorld()), player_spawn, player_health)
 
   for i, to_spawn in ipairs(self.enemies_to_spawn) do
-    print(to_spawn.position)
     if to_spawn.type == 10 then
       _assemblages.goblin:assemble(Concord.entity(self:getWorld()), to_spawn.position)
     end

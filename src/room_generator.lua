@@ -39,76 +39,192 @@ local _opposite_edge = {
 
 function generator:generate(floor_count)
   local difficulty = self:get_difficulty(floor_count)
-  local cols, rows = self:get_dimensions(difficulty)
-  local layout = {}
+  -- local difficulty = "EASIER"
+  -- local difficulty = "EASY"
+  -- local difficulty = "REGULAR"
+  -- local difficulty = "HARD"
+  self.player_spawn_position = nil
+  self.cols, self.rows = self:get_dimensions(difficulty)
+  self.layout = {}
 
-  for y = 1, rows do
-    layout[y] = {}
-    for x = 1, cols do
-      layout[y][x] = 1
+  -- initialise our layout to empty tiles
+  for y = 1, self.rows do
+    self.layout[y] = {}
+    for x = 1, self.cols do
+      self.layout[y][x] = 1
     end
   end
 
-  layout, chosen_spawn_edge = self:add_spawn(layout, cols, rows)
-  layout = self:add_exit(layout, cols, rows, chosen_spawn_edge)
-  -- layout = self:apply_templates(layout, difficulty)
-  -- layout = self:add_enemies(layout, difficulty)
+  -- perform dark rituals
+  local layout =
+    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_enemies(difficulty):build()
 
-  return layout
-  -- return {
-  --   {1, 1, 1, 2, 2, 1},
-  --   {1, 0, 3, 1, 1, 1},
-  --   {1, 1, 1, 1, 10, 10},
-  --   {1, 1, 1, 1, 10, 10},
-  --   {1, 1, 1, 1, 1, 2},
-  --   {1, 2, 2, 2, 2, 2}
-  -- }
+  -- check the level is actually winnable
+  if self:validate_layout() then
+    return layout
+  else
+    return self:generate(floor_count)
+  end
 end
 
-function generator:add_exit(layout, cols, rows, spawn_edge)
-  local edge = _opposite_edge[spawn_edge]
-  local x, y = 1, 1
-  if edge == "LEFT" then
-    y = love.math.random(1, rows)
-  elseif edge == "TOP" then
-    x = love.math.random(1, cols)
-  elseif edge == "RIGHT" then
-    x = cols
-    y = love.math.random(1, rows)
-  elseif edge == "BOTTOM" then
-    x = love.math.random(1, cols)
-    y = rows
-  end
-  layout[y][x] = 3
-  return layout, edge
+function generator:validate_layout()
+  return true
 end
 
-function generator:add_spawn(layout, cols, rows)
-  local edge = _util.g.choose("LEFT", "TOP", "RIGHT", "BOTTOM")
+function generator:add_extra_walls(difficulty)
+  local wall_count = self:get_wall_count(difficulty)
+  print("Adding " .. wall_count .. " extra walls")
+  for _ = 1, wall_count do
+    local selected_tile = -1
+    local selection = nil
+
+    while selected_tile ~= 1 do
+      selection = Vector(love.math.random(1, self.cols), love.math.random(1, self.rows))
+      selected_tile = self.layout[selection.y][selection.x]
+    end
+
+    self.layout[selection.y][selection.x] = 2
+  end
+  return self
+end
+
+function generator:add_enemies(difficulty)
+  local enemy_count = self:get_enemy_count(difficulty)
+  print("Creating " .. enemy_count .. " goblins")
+  for _ = 1, enemy_count do
+    local selected_tile = -1
+    local selection = nil
+
+    local attempts = 0
+    local max_attempts = 10
+    while selected_tile ~= 1 and attempts <= max_attempts do
+      selection = Vector(love.math.random(1, self.cols), love.math.random(1, self.rows))
+      local distance_from_spawn =
+        math.floor(
+        _util.m.distance_between(self.player_spawn_position.x, self.player_spawn_position.y, selection.x, selection.y)
+      )
+      if distance_from_spawn > 1 then
+        selected_tile = self.layout[selection.y][selection.x]
+      end
+      attempts = attempts + 1
+    end
+
+    if attempts <= max_attempts then
+      self.layout[selection.y][selection.x] = 10
+    end
+  end
+
+  return self
+end
+
+-- randomly pick a template
+-- randomly pick a point on the layout
+-- validate the layout wouldnt be replacing a spawn or exit block
+-- apply the template matrix at that random point
+function generator:apply_templates(difficulty)
+  local template_count = self:get_template_count(difficulty)
+  print("applying " .. template_count .. " templates")
+
+  for i = 1, template_count do
+    -- Pick a 3x3 random template (for now)
+    local template_class = _util.g.choose("3")
+    local template_index = love.math.random(1, #self.templates[template_class])
+    local template = self.templates[template_class][template_index]
+    local t_rows = #template
+    local t_cols = #template[1]
+
+    local attempts = 0
+    local max_attempts = 10
+    local template_applied = false
+    while not template_applied and (attempts < max_attempts) do
+      -- pick a random place on the map
+      local random_position = Vector(love.math.random(1, self.cols - t_cols), love.math.random(1, self.rows - t_rows))
+
+      local contains_invalid_placement = false
+      -- iterate 3x3 and check if there are any special tiles we cant override (spawn (0), exit (3))
+      for x = 1, t_cols do
+        for y = 1, t_rows do
+          local world_x, world_y = random_position.x + x, random_position.y + y
+          if self:is_sacred_tile(self.layout[world_y][world_x]) then
+            contains_invalid_placement = true
+          end
+        end
+      end
+
+      if not contains_invalid_placement then
+        -- apply the template matrix
+        for x = 1, t_cols do
+          for y = 1, t_rows do
+            self.layout[random_position.y + y][random_position.x + x] = template[y][x]
+          end
+        end
+        template_applied = true
+      end
+
+      attempts = attempts + 1
+    end
+  end
+  return self
+end
+
+function generator:add_exit()
+  local edge = _opposite_edge[self.chosen_spawn_edge]
+  print("exit edge: " .. edge)
   local x, y = 1, 1
   if edge == "LEFT" then
-    y = love.math.random(1, rows)
+    y = love.math.random(1, self.rows)
   elseif edge == "TOP" then
-    x = love.math.random(1, cols)
+    x = love.math.random(1, self.cols)
   elseif edge == "RIGHT" then
-    x = cols
-    y = love.math.random(1, rows)
+    x = self.cols
+    y = love.math.random(1, self.rows)
   elseif edge == "BOTTOM" then
-    x = love.math.random(1, cols)
-    y = rows
+    x = love.math.random(1, self.cols)
+    y = self.rows
   end
-  layout[y][x] = 0
-  return layout, edge
+  self.layout[y][x] = 3
+  return self
+end
+
+function generator:add_spawn()
+  self.chosen_spawn_edge = _util.g.choose("LEFT", "TOP", "RIGHT", "BOTTOM")
+  print("spawn edge: " .. self.chosen_spawn_edge)
+  local x, y = 1, 1
+  if self.chosen_spawn_edge == "LEFT" then
+    y = love.math.random(1, self.rows)
+  elseif self.chosen_spawn_edge == "TOP" then
+    x = love.math.random(1, self.cols)
+  elseif self.chosen_spawn_edge == "RIGHT" then
+    x = self.cols
+    y = love.math.random(1, self.rows)
+  elseif self.chosen_spawn_edge == "BOTTOM" then
+    x = love.math.random(1, self.cols)
+    y = self.rows
+  end
+  self.player_spawn_position = Vector(x, y)
+  self.layout[y][x] = 0
+  return self
+end
+
+function generator:build()
+  return self.layout
+end
+
+-- HELPER FUNCTIONS
+
+-- Whether or not this tile can be overriden by templates/random walls (spawns and exits shouldnt be)
+function generator:is_sacred_tile(id)
+  return id == 0 or id == 3
 end
 
 function generator:get_difficulty(floor_count)
   if floor_count <= 3 then
     return "EASIER"
-  elseif floor_count <= 8 then
+  elseif floor_count <= 7 then
     return "EASY"
-  elseif floor_count <= 15 then
+  elseif floor_count <= 13 then
     return "REGULAR"
-  elseif floor_count <= 22 then
+  elseif floor_count <= 20 then
     return "HARD"
   end
 end
@@ -117,20 +233,57 @@ function generator:get_dimensions(difficulty)
   if difficulty == "EASIER" then
     return 5, 5
   elseif difficulty == "EASY" then
-    return 10, 7
+    return 8, 6
   elseif difficulty == "REGULAR" then
-    return 15, 10
+    return 11, 8
   elseif difficulty == "HARD" then
-    return 20, 12
+    return 15, 10
   end
 end
 
+function generator:get_enemy_count(difficulty)
+  if difficulty == "EASIER" then
+    return love.math.random(1, 2)
+  elseif difficulty == "EASY" then
+    return love.math.random(2, 3)
+  elseif difficulty == "REGULAR" then
+    return love.math.random(4, 5)
+  elseif difficulty == "HARD" then
+    return love.math.random(6, 7) -- duno yet
+  end
+end
+
+function generator:get_template_count(difficulty)
+  if difficulty == "EASIER" then
+    return love.math.random(2, 4)
+  elseif difficulty == "EASY" then
+    return love.math.random(6, 8)
+  elseif difficulty == "REGULAR" then
+    return love.math.random(13, 20) -- duno yet
+  elseif difficulty == "HARD" then
+    return love.math.random(13, 20) -- duno yet
+  end
+end
+
+function generator:get_wall_count(difficulty)
+  if difficulty == "EASIER" then
+    return love.math.random(1, 3)
+  elseif difficulty == "EASY" then
+    return love.math.random(3, 5)
+  elseif difficulty == "REGULAR" then
+    return love.math.random(8, 10)
+  elseif difficulty == "HARD" then
+    return love.math.random(10, 16) -- duno yet
+  end
+end
+
+-- These have to be RECTANGULAR, not just squares
 generator["templates"] = {
-  ["3x3"] = {
+  ["3"] = {
     {
-      {1, 1, 1},
       {1, 2, 1},
-      {1, 1, 1}
+      {1, 2, 1},
+      {1, 2, 1}
     },
     {
       {1, 1, 1},
@@ -141,6 +294,46 @@ generator["templates"] = {
       {2, 1, 1},
       {2, 1, 2},
       {2, 1, 1}
+    },
+    {
+      {2, 2, 2},
+      {1, 2, 1},
+      {1, 2, 1}
+    },
+    {
+      {1, 2, 1},
+      {1, 2, 1},
+      {2, 2, 2}
+    },
+    {
+      {2, 1, 2},
+      {1, 1, 1},
+      {2, 1, 2}
+    },
+    {
+      {2, 1, 2},
+      {1, 2, 1},
+      {1, 1, 1}
+    },
+    {
+      {1, 1, 2},
+      {1, 2, 1},
+      {2, 1, 1}
+    },
+    {
+      {2, 1, 1},
+      {1, 2, 1},
+      {1, 1, 2}
+    },
+    {
+      {2, 2, 1},
+      {1, 1, 1},
+      {1, 1, 2}
+    },
+    {
+      {1, 1, 2},
+      {1, 1, 1},
+      {2, 2, 1}
     }
   }
 }

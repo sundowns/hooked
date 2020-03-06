@@ -90,7 +90,7 @@ function score:draw()
 end
 
 function score:draw_ui()
-  love.graphics.draw(self.text["SCORE"], love.graphics.getWidth() / 2 - self.text["SCORE"]:getWidth() / 2, 50)
+  love.graphics.draw(self.text["SCORE"], love.graphics.getWidth() / 2 - self.text["SCORE"]:getWidth() / 2, 0)
   if self.defeat then
     love.graphics.setColor(0.965, 0.20, 0.388)
     love.graphics.draw(

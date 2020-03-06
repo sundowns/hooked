@@ -47,15 +47,15 @@ function load_game()
   -- moonshine = require("libs.moonshine")
 
   _fonts = {
-    ["FLOOR_COUNTER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 48),
-    ["CONTROLS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
-    ["PHASES"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 28),
+    ["FLOOR_COUNTER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 42),
+    ["CONTROLS"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 24),
+    ["PHASES"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 32),
     ["HIGH_SCORE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 20),
     ["TITLE"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 100),
     ["GAME_OVER"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 128),
     ["START"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 24)
   }
 
-  -- GamestateManager.switch(game, {})
-  GamestateManager.switch(title, {floor_count = 0})
+  GamestateManager.switch(game, {})
+  -- GamestateManager.switch(title, {floor_count = 0})
 end
