@@ -61,11 +61,11 @@ function generator:generate_room(floor_count, player_health, max_health)
 
   -- perform dark rituals
   local layout =
-    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_enemies(difficulty):add_health_packs(
+    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_health_packs(
     difficulty,
     player_health,
     max_health
-  ):build()
+  ):add_enemies(difficulty):build()
 
   -- check the level is actually winnable
   if self:validate_floor() then

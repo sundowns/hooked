@@ -1,5 +1,6 @@
 local _valid_types = {
-  ["goblin"] = true
+  ["goblin"] = true,
+  ["gremlin"] = true
 }
 
 local brain =

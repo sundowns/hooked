@@ -45,6 +45,6 @@ return Concord.assemblage(
       _sprites.sheet,
       player_sprite_quads,
       true
-    ):give(_components.health, health, _constants.PLAYER_STARTING_HEALTH)
+    ):give(_components.health, health, _constants.PLAYER_STARTING_HEALTH):give(_components.id)
   end
 )

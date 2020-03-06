@@ -1,10 +1,11 @@
 local room =
   Concord.system(
-  {_components.grid, "ALL"},
-  {_components.grid, _components.sprite, "DRAWABLE"},
-  {_components.control, _components.grid, "PLAYER"},
-  {_components.chain, _components.head, "HOOK_CHAIN"},
-  {_components.grid, _components.selection, "SELECTORS"}
+  {_components.grid, _components.id, "ALL"},
+  {_components.grid, _components.sprite, _components.id, "DRAWABLE"},
+  {_components.control, _components.grid, _components.id, "PLAYER"},
+  {_components.chain, _components.head, _components.id, "HOOK_CHAIN"},
+  {_components.grid, _components.selection, "SELECTORS"},
+  {_components.collectible, _components.grid, "COLLECTIBLES"}
 )
 
 local _TILE_LOOKUP = {
@@ -94,7 +95,8 @@ function room:init()
   self.ALL.onEntityRemoved = function(pool, e)
     local grid = e:get(_components.grid)
     if grid.is_occupier then
-      if self:get_occupant(grid.position.x, grid.position.y) == e then
+      local occupant = self:get_occupant(grid.position.x, grid.position.y)
+      if occupant and occupant:get(_components.id).value == e:get(_components.id).value then
         self:set_occupancy(grid.position.x, grid.position.y, nil)
       end
     end
@@ -154,7 +156,8 @@ function room:load_room(layout_grid, player_health)
 
   for i, spawner in ipairs(self.to_spawn) do
     if spawner.type == 10 then
-      _assemblages.goblin:assemble(Concord.entity(self:getWorld()), spawner.position)
+      -- _assemblages.goblin:assemble(Concord.entity(self:getWorld()), spawner.position) --TODO:
+      _assemblages.gremlin:assemble(Concord.entity(self:getWorld()), spawner.position)
     elseif spawner.type == 20 then
       _assemblages.healthpack:assemble(Concord.entity(self:getWorld()), spawner.position)
     end
@@ -181,6 +184,29 @@ function room:update(dt)
       self.shake_duration = 0
     end
   end
+
+  for i = 1, self.COLLECTIBLES.size do
+    local e = self.COLLECTIBLES:get(i)
+    local position = e:get(_components.grid).position
+    local occupant = self:get_occupant(position.x, position.y)
+    local collectible_type = e:get(_components.collectible).type
+    if occupant then
+      if occupant:has(_components.control) then
+        -- if its a player, pickup
+        self:getWorld():emit("player_got_collectible", collectible_type)
+        self:getWorld():removeEntity(e)
+      elseif occupant:has(_components.head) or occupant:has(_components.enemy) then
+        -- if its a hook or enemy, check for inventory
+        local inventory = occupant:get(_components.inventory)
+        if inventory and inventory:is_empty() then
+          ---- if inventory present, add to it & and delete collectible
+          inventory:pickup(collectible_type)
+          self:getWorld():removeEntity(e)
+        end
+      -- else do fuck all
+      end
+    end
+  end
 end
 
 function room:is_empty(position)
@@ -196,6 +222,8 @@ end
 
 function room:move_entity(e, direction)
   local grid = e:get(_components.grid)
+  local target_position = grid.position + direction_to_offset(direction)
+  local occupant = self:get_occupant(target_position.x, target_position.y)
   local old_position = grid.position:clone()
   grid:translate(direction_to_offset(direction))
   if grid.is_occupier then
@@ -248,7 +276,7 @@ function room:attempt_entity_move(e, direction)
       if e:has(_components.head) then
         self:hook_collided_with_something(e, occupant, target_pos, direction)
       elseif e:has(_components.enemy) then
-        self:enemy_collided_with_something(e, occupant, target_pos)
+        self:enemy_collided_with_something(e, occupant, target_pos, direction)
       elseif e:has(_components.control) then
         self:player_collided_with_something(e, occupant, target_pos, direction)
       end
@@ -265,19 +293,14 @@ end
 
 function room:player_collided_with_something(player, occupant, collided_at, direction)
   if (occupant:has(_components.chain) and occupant:get(_components.chain):get_length() == 0) then
+    local inventory = occupant:get(_components.inventory)
+    if inventory and not inventory:is_empty() then
+      self:getWorld():emit("player_got_collectible", inventory.current)
+    end
     self:set_occupancy(collided_at.x, collided_at.y, nil)
     self:move_entity(player, direction)
     self:getWorld():removeEntity(occupant)
     player:get(_components.hook_thrower):reset()
-  elseif occupant:has(_components.collectible) then
-    local collectible = occupant:get(_components.collectible)
-    if collectible.type == "health" then
-      self:getWorld():emit("increase_health")
-      self:getWorld():removeEntity(occupant)
-      self:move_entity(player, direction)
-    else
-      print("player picked up unknown collectible")
-    end
   else
     print("player collided with some unknown entity") --TODO: nuke
   end
@@ -290,14 +313,12 @@ function room:hook_collided_with_something(hook, occupant, collided_at, directio
     self:getWorld():removeEntity(occupant)
     -- no need to unset occupancy for enemy here
     self:move_entity(hook, direction)
-  elseif occupant:has(_components.collectible) then
-    print("hook picked up item")
   else
     print("hook hit something whack dawg")
   end
 end
 
-function room:enemy_collided_with_something(enemy, occupant, collided_at)
+function room:enemy_collided_with_something(enemy, occupant, collided_at, direction)
   local position = enemy:get(_components.grid).position
 
   if occupant:has(_components.control) then
@@ -305,8 +326,6 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at)
   elseif occupant:has(_components.head) then
     self:set_occupancy(position.x, position.y, nil)
     self:getWorld():removeEntity(enemy)
-  elseif occupant:has(_components.collectible) then
-    print("enemy picked up item")
   else
     print("enemy hit something unknown")
   end
@@ -320,12 +339,15 @@ function room:attempt_hook_throw(e, direction)
   if self:validate_direction(e, direction) then
     local attempted_position = grid.position + direction_to_offset(direction)
     local occupant = self:get_occupant(attempted_position.x, attempted_position.y)
-    if occupant and occupant:has(_components.enemy) then
-      self:getWorld():removeEntity(occupant)
-      self:set_occupancy(attempted_position.x, attempted_position.y, nil)
+    local item = nil
+    if occupant then
+      if occupant:has(_components.enemy) then
+        self:getWorld():removeEntity(occupant)
+        self:set_occupancy(attempted_position.x, attempted_position.y, nil)
+      end
     end
 
-    self:getWorld():emit("throw_hook", direction)
+    self:getWorld():emit("throw_hook", direction, item)
   else
     --TODO: invalid move SFX
     self:getWorld():emit("invalid_directional_action")
@@ -385,6 +407,26 @@ function room:draw()
         self.tile_scale * sprite.scale,
         self.tile_scale * sprite.scale
       )
+    end
+    if e:has(_components.inventory) then
+      local inventory = e:get(_components.inventory)
+      if not inventory:is_empty() then
+        -- whole function is an EASY hack cause i ceebs
+        local collectible_quad = nil
+        local collectible_scale = 0.25
+        if inventory.current == "health" then
+          collectible_quad = _sprites.build_quad(3, 5)
+        end
+        love.graphics.draw(
+          _sprites.sheet,
+          collectible_quad,
+          self.grid_origin.x + (position.x * _constants.TILE_SIZE * self.tile_scale),
+          self.grid_origin.y + ((position.y + 0.375) * _constants.TILE_SIZE * self.tile_scale),
+          0,
+          self.tile_scale * collectible_scale,
+          self.tile_scale * collectible_scale
+        )
+      end
     end
   end
 
@@ -487,7 +529,7 @@ function room:draw_debug()
   love.graphics.setColor(0, 1, 0)
   love.graphics.circle("fill", self.grid_origin.x, self.grid_origin.y, 2)
 
-  love.graphics.setColor(1, 0, 0)
+  love.graphics.setColor(1, 0, 1)
   -- draw the occupancy map
   for _, row in pairs(self.occupancy_map) do
     for _, occupant in pairs(row) do
@@ -509,15 +551,12 @@ function room:validate_direction(entity, direction)
   local occupant = self:get_occupant(new_position.x, new_position.y)
 
   if entity:has(_components.head) then
-    if occupant and (occupant:has(_components.enemy) or occupant:has(_components.collectible)) then
+    if occupant and (occupant:has(_components.enemy)) then
       return true
     end
   end
   if entity:has(_components.enemy) then
-    if
-      occupant and
-        (occupant:has(_components.control) or occupant:has(_components.head) or occupant:has(_components.collectible))
-     then
+    if occupant and (occupant:has(_components.control) or occupant:has(_components.head)) then
       return true
     end
   end
@@ -527,8 +566,7 @@ function room:validate_direction(entity, direction)
       occupant and
         ((selection.action == "move" and occupant:has(_components.head) and
           occupant:get(_components.chain):get_length() == 0) or
-          (selection.action == "hook" and occupant:has(_components.enemy)) or
-          occupant:has(_components.collectible))
+          (selection.action == "hook" and occupant:has(_components.enemy)))
      then
       return true
     end

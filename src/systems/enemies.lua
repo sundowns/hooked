@@ -9,7 +9,7 @@ function enemies:init()
   self.enemies_to_action = {}
   self.current_phase = nil
   self.active = false
-  self.turn_duration = 0.5
+  self.turn_duration = 0.25
   self.navigation_map = nil
 end
 
@@ -18,9 +18,8 @@ function enemies:navigation_map_generated(navigation_map)
 end
 
 function enemies:update(dt)
+  self.timer:update(dt)
   if self.active then
-    self.timer:update(dt)
-
     if #self.enemies_to_action == 0 then
       -- all enemies processed, weeeeee
       self.active = false
@@ -34,21 +33,32 @@ function enemies:begin_phase(phase)
     return
   end
 
-  self.active = true
+  self.timer:clear()
+
   self.enemies_to_action = {}
   for i = 1, self.ENEMIES.size do
     local e = self.ENEMIES:get(i)
     table.insert(self.enemies_to_action, e)
   end
 
-  self.process_enemy_callback_fn =
-    self.timer:every(
-    math.min(self.turn_duration / self.ENEMIES.size, self.turn_duration / 2),
-    function()
-      self:action_top_enemy()
-    end,
-    #self.enemies_to_action
-  )
+  if self.ENEMIES.size > 0 then
+    self.active = true
+    self.process_enemy_callback_fn =
+      self.timer:every(
+      math.min(self.turn_duration * 2 / self.ENEMIES.size, self.turn_duration),
+      function()
+        self:action_top_enemy()
+      end,
+      #self.enemies_to_action
+    )
+  else
+    self.timer:after(
+      self.turn_duration,
+      function()
+        self:getWorld():emit("end_phase", "ENEMIES")
+      end
+    )
+  end
 end
 
 function enemies:action_top_enemy()
@@ -59,8 +69,9 @@ function enemies:action_top_enemy()
   end
   local brain = enemy:get(_components.brain)
   if brain.type == "goblin" then
-    -- choose an action with their BRAIN
     self:action_goblin(enemy)
+  elseif brain.type == "gremlin" then
+    self:action_goblin(enemy) -- TODO: add a gremlin behaviour function
   else
     print("mystery brain...duhhh....")
   end

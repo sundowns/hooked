@@ -39,7 +39,6 @@ function hook:update(dt)
   if self.is_active then
     local player = self.PLAYER:get(1)
     if not player:get(_components.hook_thrower).can_throw then
-      local to_remove = {}
       for i = 1, self.HOOK.size do
         local e = self.HOOK:get(i)
         local grid = e:get(_components.grid)
@@ -59,6 +58,11 @@ function hook:update(dt)
           -- we're retracting, move to the last chain link and shrink the chain
 
           if #chain.links == 0 then
+            local inventory = e:get(_components.inventory)
+            if inventory and not inventory:is_empty() then
+              self:getWorld():emit("player_got_collectible", inventory.current)
+            end
+
             self:getWorld():removeEntity(e)
             self.PLAYER:get(1):get(_components.hook_thrower):reset()
           else
@@ -68,10 +72,6 @@ function hook:update(dt)
           end
         end
       end
-
-      for i, entity in ipairs(to_remove) do
-        self:getWorld():removeEntity(entity)
-      end
     end
     self.is_active = false
     self.player_extended_hook_this_turn = false
@@ -79,7 +79,7 @@ function hook:update(dt)
   end
 end
 
-function hook:throw_hook(direction)
+function hook:throw_hook(direction, item)
   local player = self.PLAYER:get(1)
   local hook_thrower = player:get(_components.hook_thrower)
   -- check direction is valid
@@ -89,7 +89,8 @@ function hook:throw_hook(direction)
     Concord.entity(self:getWorld()),
     player:get(_components.grid).position + direction_to_offset(direction),
     direction,
-    hook_thrower.max_length
+    hook_thrower.max_length,
+    item
   )
 
   player:get(_components.selection):reset()

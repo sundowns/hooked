@@ -38,10 +38,12 @@ function health:reduce_health()
   end
 end
 
-function health:increase_health()
-  local player = self.PLAYER:get(1)
-  local health = player:get(_components.health)
-  health:increase(1)
+function health:player_got_collectible(type)
+  if type == "health" then
+    local player = self.PLAYER:get(1)
+    local health = player:get(_components.health)
+    health:increase(1)
+  end
 end
 
 function health:draw_debug()

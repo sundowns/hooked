@@ -3,7 +3,7 @@
 return Concord.assemblage(
   function(e, origin)
     local enemy_sprite_quads = {
-      [1] = _sprites.build_quad(5, 6)
+      [1] = _sprites.build_quad(6, 6)
     }
 
     e:give(_components.grid, origin, true):give(_components.enemy):give(
@@ -11,6 +11,6 @@ return Concord.assemblage(
       _sprites.sheet,
       enemy_sprite_quads,
       false
-    ):give(_components.brain, "goblin"):give(_components.id)
+    ):give(_components.brain, "gremlin"):give(_components.inventory):give(_components.id)
   end
 )
