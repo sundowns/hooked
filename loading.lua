@@ -56,6 +56,6 @@ function load_game()
     ["START"] = love.graphics.newFont("resources/fonts/slkscr.ttf", 24)
   }
 
-  GamestateManager.switch(game, {})
-  -- GamestateManager.switch(title, {floor_count = 0})
+  -- GamestateManager.switch(game, {})
+  GamestateManager.switch(title, {floor_count = 0})
 end
