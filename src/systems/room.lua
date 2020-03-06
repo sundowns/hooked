@@ -238,10 +238,29 @@ function room:attempt_entity_move(e, direction)
     elseif e:has(_components.enemy) then
       self:enemy_collided_with_something(e, direction)
     elseif e:has(_components.control) then
-      --TODO: invalid move SFX
-      self:getWorld():emit("invalid_entity_move", e)
-      self:getWorld():emit("invalid_directional_action")
+      self:player_collided_with_something(e, direction)
     end
+  end
+end
+
+function room:player_collided_with_something(player, direction)
+  local position = player:get(_components.grid).position
+  local collided_at = position + direction_to_offset(direction)
+  local occupant = self:get_occupant(collided_at.x, collided_at.y)
+  if occupant then
+    if (occupant:has(_components.chain) and occupant:get(_components.chain):get_length() == 0) then
+      self:set_occupancy(collided_at.x, collided_at.y, nil)
+      self:getWorld():removeEntity(occupant)
+      player:get(_components.hook_thrower):reset()
+      self:move_entity(player, direction)
+    else
+      -- TODO: handle item pickup
+      print("player collided with some non-hook entity")
+    end
+  else
+    --TODO: invalid move SFX
+    self:getWorld():emit("invalid_entity_move", player)
+    self:getWorld():emit("invalid_directional_action")
   end
 end
 
