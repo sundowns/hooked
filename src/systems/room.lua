@@ -483,7 +483,7 @@ function room:draw_debug()
   _util.l.reset_colour()
 end
 
-function room:validate_direction(position, direction, is_hook)
+function room:validate_direction(position, direction, is_hook, is_player)
   local offset = direction_to_offset(direction)
   local new_position = position + offset
 
@@ -493,10 +493,30 @@ function room:validate_direction(position, direction, is_hook)
       return true
     end
   end
+  if is_player then
+    local occupant = self:get_occupant(new_position.x, new_position.y)
+    if occupant and occupant:has(_components.head) then
+      return true
+    end
+  end
   if self:is_empty(new_position) then
     return true
   else
     return false
+  end
+end
+
+function room:test_direction_is_valid(entity, direction)
+  assert(entity:has(_components.grid))
+  if
+    self:validate_direction(
+      entity:get(_components.grid).position,
+      direction,
+      entity:has(_components.head),
+      entity:has(_components.control)
+    )
+   then
+    self:getWorld():emit("direction_is_valid", entity, direction)
   end
 end
 

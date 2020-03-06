@@ -142,8 +142,17 @@ function turn:make_selection(action, e)
       selection:set_action(action)
     end
   elseif selection.all_directions[action] then
-    selection:set_direction(action)
+    -- selection:set_direction(action)
+    self:getWorld():emit("test_direction_is_valid", e, action)
   end
+end
+
+function turn:direction_is_valid(player, direction)
+  if not (player:has(_components.control) and player:has(_components.selection)) then
+    return
+  end
+
+  player:get(_components.selection):set_direction(direction)
 end
 
 function turn:invalid_directional_action()
