@@ -172,8 +172,8 @@ function turn:draw_ui()
     local player = self.PLAYER:get(1)
     local selection = player:get(_components.selection)
     local text_to_draw = {}
-    local control_text_width = 0
     local buffer_width = 30
+    local control_text_width = -buffer_width -- extremely woke
     function prepare_text_to_draw(text)
       table.insert(text_to_draw, text)
       control_text_width = control_text_width + text:getWidth() + buffer_width

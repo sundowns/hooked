@@ -79,7 +79,7 @@ function hook:update(dt)
   end
 end
 
-function hook:throw_hook(direction, item)
+function hook:throw_hook(direction)
   local player = self.PLAYER:get(1)
   local hook_thrower = player:get(_components.hook_thrower)
   -- check direction is valid
@@ -89,8 +89,7 @@ function hook:throw_hook(direction, item)
     Concord.entity(self:getWorld()),
     player:get(_components.grid).position + direction_to_offset(direction),
     direction,
-    hook_thrower.max_length,
-    item
+    hook_thrower.max_length
   )
 
   player:get(_components.selection):reset()

@@ -11,7 +11,6 @@ end
 
 function inventory:pickup(collectible)
   self.current = collectible
-  print(self.current)
 end
 
 function inventory:drop()

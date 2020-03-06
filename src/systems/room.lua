@@ -310,6 +310,11 @@ end
 
 function room:hook_collided_with_something(hook, occupant, collided_at, direction)
   if occupant:has(_components.enemy) then
+    local inventory = occupant:get(_components.inventory)
+    if inventory and not inventory:is_empty() then
+      self:spawn_collectible(inventory.current, collided_at)
+    end
+
     self:set_occupancy(collided_at.x, collided_at.y, nil)
     occupant:get(_components.enemy):mark_for_deletion()
     self:getWorld():removeEntity(occupant)
@@ -333,6 +338,12 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at, direct
   end
 end
 
+function room:spawn_collectible(type, position)
+  if type == "health" then
+    _assemblages.healthpack:assemble(Concord.entity(self:getWorld()), position)
+  end
+end
+
 function room:attempt_hook_throw(e, direction)
   if not e:has(_components.grid) then
     return
@@ -344,12 +355,17 @@ function room:attempt_hook_throw(e, direction)
     local item = nil
     if occupant then
       if occupant:has(_components.enemy) then
+        local enemy_inventory = occupant:get(_components.inventory)
+        if enemy_inventory and not enemy_inventory:is_empty() then
+          self:spawn_collectible(enemy_inventory.current, attempted_position)
+        end
+
         self:getWorld():removeEntity(occupant)
         self:set_occupancy(attempted_position.x, attempted_position.y, nil)
       end
     end
 
-    self:getWorld():emit("throw_hook", direction, item)
+    self:getWorld():emit("throw_hook", direction)
   else
     --TODO: invalid move SFX
     self:getWorld():emit("invalid_directional_action")

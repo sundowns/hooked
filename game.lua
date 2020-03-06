@@ -41,9 +41,7 @@ end
 
 function game:keypressed(key, _, _)
   if key == "r" then
-    love.event.quit("restart")
-  elseif key == "escape" then
-    -- love.event.quit()
+    -- love.event.quit("restart") -- TODO: remove
   elseif key == "f1" then
     _DEBUG = not _DEBUG -- TODO: remove
   end
