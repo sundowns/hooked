@@ -13,8 +13,9 @@ function turn:init()
     ["FIRE_HOOK"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE]: Fire Hook"),
     ["DIRECT"] = love.graphics.newText(_fonts["CONTROLS"], "[WASD/Arrows] - Select Direction"),
     ["MOVE"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Move"),
-    ["BACK"] = love.graphics.newText(_fonts["CONTROLS"], "[ESCAPE] - Back"),
-    ["PASS"] = love.graphics.newText(_fonts["CONTROLS"], "Press [SPACE] again to PASS"),
+    ["BACK"] = love.graphics.newText(_fonts["CONTROLS"], "[ESCAPE] - Deselect"),
+    ["PASS"] = love.graphics.newText(_fonts["CONTROLS"], "Press [SPACE] to confirm PASS"),
+    ["PROMPT_PASS"] = love.graphics.newText(_fonts["CONTROLS"], "[SPACE] - Pass"),
     ["PHASES"] = {}
   }
   self.gameplay_paused = false
@@ -182,9 +183,9 @@ function turn:draw_ui()
     if selection.is_passing then
       prepare_text_to_draw(self.text["PASS"])
     else
-      if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
-        prepare_text_to_draw(self.text["BACK"])
-      end
+      -- if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
+      --   prepare_text_to_draw(self.text["BACK"])
+      -- end
 
       local hook_thrower = player:get(_components.hook_thrower)
       if hook_thrower.can_throw then
@@ -199,10 +200,15 @@ function turn:draw_ui()
 
       if selection.direction == "none" then
         prepare_text_to_draw(self.text["DIRECT"])
+        prepare_text_to_draw(self.text["PROMPT_PASS"])
       end
 
       if selection.action == "move" and selection.direction ~= "none" then
         prepare_text_to_draw(self.text["MOVE"])
+      end
+
+      if (selection.direction ~= "none" and selection.action == "move") or selection.action == "hook" then
+        prepare_text_to_draw(self.text["BACK"])
       end
     end
 
