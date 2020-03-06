@@ -205,7 +205,7 @@ function generator:add_enemies(difficulty)
         math.floor(
         _util.m.distance_between(self.player_spawn_position.x, self.player_spawn_position.y, selection.x, selection.y)
       )
-      if distance_from_spawn > 1 then
+      if distance_from_spawn > 1 and self:can_reach_exit(selection) then
         selected_tile = self.layout[selection.y][selection.x]
       end
       attempts = attempts + 1
