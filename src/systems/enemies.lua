@@ -1,7 +1,8 @@
 local enemies =
   Concord.system(
   {_components.enemy, _components.grid, _components.brain, "ENEMIES"},
-  {_components.control, _components.grid, _components.health, "PLAYER"}
+  {_components.control, _components.grid, _components.health, "PLAYER"},
+  {_components.collectible, "COLLECTIBLE"}
 )
 function enemies:init()
   self.timer = Timer.new()
@@ -10,11 +11,23 @@ function enemies:init()
   self.current_phase = nil
   self.active = false
   self.turn_duration = 0.25
-  self.navigation_map = nil
+  self.navigation_maps = {}
+  self.collectible_exists = false
+
+  self.COLLECTIBLE.onEntityAdded = function(pool, e)
+    self.collectible_exists = true
+  end
+
+  self.COLLECTIBLE.onEntityRemoved = function(pool, e)
+    self.collectible_exists = false
+  end
 end
 
-function enemies:navigation_map_generated(navigation_map)
-  self.navigation_map = navigation_map
+function enemies:navigation_map_generated(type, navigation_map)
+  self.navigation_maps[type] = navigation_map
+end
+
+function enemies:collectible_created()
 end
 
 function enemies:update(dt)
@@ -71,31 +84,41 @@ function enemies:action_top_enemy()
   if brain.type == "goblin" then
     self:action_goblin(enemy)
   elseif brain.type == "gremlin" then
-    self:action_goblin(enemy) -- TODO: add a gremlin behaviour function
+    self:action_gremlin(enemy)
   else
     print("mystery brain...duhhh....")
   end
 end
 
 function enemies:draw_debug()
-  if self.navigation_map then
-    for y = 1, #self.navigation_map do
-      for x = 1, #self.navigation_map[y] do
-        love.graphics.print(self.navigation_map[y][x], 30 * x, 30 * y)
+  love.graphics.setColor(1, 0, 0)
+  if self.navigation_maps["player"] then
+    for y = 1, #self.navigation_maps["player"] do
+      for x = 1, #self.navigation_maps["player"][y] do
+        love.graphics.print(self.navigation_maps["player"][y][x], 25 * x, 25 * y)
+      end
+    end
+  end
+
+  love.graphics.setColor(0, 1, 0)
+  if self.navigation_maps["collectible"] then
+    for y = 1, #self.navigation_maps["collectible"] do
+      for x = 1, #self.navigation_maps["collectible"][y] do
+        love.graphics.print(self.navigation_maps["collectible"][y][x], 800 + (25 * x), 25 * y)
       end
     end
   end
 end
 
-function enemies:action_goblin(e)
-  local enemy_pos = e:get(_components.grid).position
-  local adjusted_pos = Vector(enemy_pos.x + 1, enemy_pos.y + 1)
-  local current_distance = self.navigation_map[adjusted_pos.y][adjusted_pos.x]
-  local choices = {{"wait", 1}}
+function enemies:navigate_to(entity, map_name, default_choices)
+  local entity_pos = entity:get(_components.grid).position
+  local adjusted_pos = Vector(entity_pos.x + 1, entity_pos.y + 1)
+  local current_distance = self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x]
 
+  local choices = default_choices or {}
   if
-    adjusted_pos.x - 1 > 0 and self.navigation_map[adjusted_pos.y][adjusted_pos.x - 1] ~= -1 and
-      self.navigation_map[adjusted_pos.y][adjusted_pos.x - 1] < current_distance
+    adjusted_pos.x - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] < current_distance
    then
     table.insert(
       choices,
@@ -107,9 +130,9 @@ function enemies:action_goblin(e)
   end
   -- RIGHT
   if
-    adjusted_pos.x + 1 <= #self.navigation_map[adjusted_pos.y] and
-      self.navigation_map[adjusted_pos.y][adjusted_pos.x + 1] ~= -1 and
-      self.navigation_map[adjusted_pos.y][adjusted_pos.x + 1] < current_distance
+    adjusted_pos.x + 1 <= #self.navigation_maps[map_name][adjusted_pos.y] and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] < current_distance
    then
     table.insert(
       choices,
@@ -121,8 +144,8 @@ function enemies:action_goblin(e)
   end
   -- TOP
   if
-    adjusted_pos.y - 1 > 0 and self.navigation_map[adjusted_pos.y - 1][adjusted_pos.x] ~= -1 and
-      self.navigation_map[adjusted_pos.y - 1][adjusted_pos.x] < current_distance
+    adjusted_pos.y - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] < current_distance
    then
     table.insert(
       choices,
@@ -134,8 +157,9 @@ function enemies:action_goblin(e)
   end
   -- BOTTOM
   if
-    adjusted_pos.y + 1 <= #self.navigation_map and self.navigation_map[adjusted_pos.y + 1][adjusted_pos.x] ~= -1 and
-      self.navigation_map[adjusted_pos.y + 1][adjusted_pos.x] < current_distance
+    adjusted_pos.y + 1 <= #self.navigation_maps[map_name] and
+      self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] < current_distance
    then
     table.insert(
       choices,
@@ -146,9 +170,94 @@ function enemies:action_goblin(e)
     )
   end
 
+  return choices
+end
+
+function enemies:navigate_away_from(entity, map_name, default_choices)
+  local entity_pos = entity:get(_components.grid).position
+  local adjusted_pos = Vector(entity_pos.x + 1, entity_pos.y + 1)
+  local current_distance = self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x]
+
+  local choices = default_choices or {}
+  if
+    adjusted_pos.x - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] > current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "left",
+        5
+      }
+    )
+  end
+  -- RIGHT
+  if
+    adjusted_pos.x + 1 <= #self.navigation_maps[map_name][adjusted_pos.y] and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] > current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "right",
+        5
+      }
+    )
+  end
+  -- TOP
+  if
+    adjusted_pos.y - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] > current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "up",
+        5
+      }
+    )
+  end
+  -- BOTTOM
+  if
+    adjusted_pos.y + 1 <= #self.navigation_maps[map_name] and
+      self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] ~= -1 and
+      self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] > current_distance
+   then
+    table.insert(
+      choices,
+      {
+        "down",
+        5
+      }
+    )
+  end
+
+  return choices
+end
+
+function enemies:action_goblin(e)
+  local choices = {{"wait", 1}}
+
+  choices = self:navigate_to(e, "player", choices)
+
   local choice = _util.g.choose_weighted(unpack(choices))
 
-  if choice ~= "wait" then
+  if choice and choice ~= "wait" then
+    self:getWorld():emit("attempt_entity_move", e, choice)
+  end
+end
+
+function enemies:action_gremlin(e)
+  local choices = {}
+  if self.collectible_exists then
+    choices = self:navigate_to(e, "collectible")
+  else
+    choices = {{"wait", 1}}
+    choices = self:navigate_away_from(e, "player")
+  end
+  local choice = _util.g.choose_weighted(unpack(choices))
+  if choice and choice ~= "wait" then
     self:getWorld():emit("attempt_entity_move", e, choice)
   end
 end

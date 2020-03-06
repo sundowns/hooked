@@ -116,11 +116,14 @@ end
 
 function room:next_room(player_health, current_floor)
   self:getWorld():clear()
-  local room, navigation_map =
+  local room, navigation_maps =
     self.generator:generate_room(current_floor, player_health, _constants.PLAYER_STARTING_HEALTH)
   self:load_room(room, player_health)
   self:getWorld():emit("room_loaded")
-  self:getWorld():emit("navigation_map_generated", navigation_map)
+  self:getWorld():emit("navigation_map_generated", "player", navigation_maps["player"])
+  if navigation_maps["collectible"] then
+    self:getWorld():emit("navigation_map_generated", "collectible", navigation_maps["collectible"])
+  end
 end
 
 function room:load_room(layout_grid, player_health)
@@ -143,10 +146,7 @@ function room:load_room(layout_grid, player_health)
       if tile_id == 0 then
         player_spawn = Vector(x - 1, y - 1)
         self.grid[y][x] = 1 -- make this a dirt block
-      elseif tile_id == 10 then
-        table.insert(self.to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
-        self.grid[y][x] = 1 -- make this a dirt block
-      elseif tile_id >= 20 and tile_id <= 23 then
+      elseif tile_id == 10 or tile_id == 11 or (tile_id >= 20 and tile_id <= 23) then
         table.insert(self.to_spawn, {type = tile_id, position = Vector(x - 1, y - 1)})
         self.grid[y][x] = 1 -- make this a dirt block
       end
@@ -156,7 +156,8 @@ function room:load_room(layout_grid, player_health)
 
   for i, spawner in ipairs(self.to_spawn) do
     if spawner.type == 10 then
-      -- _assemblages.goblin:assemble(Concord.entity(self:getWorld()), spawner.position) --TODO:
+      _assemblages.goblin:assemble(Concord.entity(self:getWorld()), spawner.position)
+    elseif spawner.type == 11 then
       _assemblages.gremlin:assemble(Concord.entity(self:getWorld()), spawner.position)
     elseif spawner.type == 20 then
       _assemblages.healthpack:assemble(Concord.entity(self:getWorld()), spawner.position)
@@ -251,6 +252,7 @@ function room:move_entity(e, direction)
     else
       self:getWorld():emit(
         "navigation_map_generated",
+        "player",
         self.generator:generate_navigation_map(Vector(grid.position.x + 1, grid.position.y + 1), self.grid)
       )
       self:getWorld():emit("end_phase", "PLAYER")

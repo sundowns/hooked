@@ -9,6 +9,7 @@ local generator = {}
       * '2' - wall 
       * '3' - exit 
       * '10' - empty with goblin
+      * '11' - empty with gremlin
       * '20' - healthpack
       * '21' - key (orange)
       * '22' - key (cyan)
@@ -28,6 +29,8 @@ local generator = {}
       * use F# to determine how many and which size templates to use (its basically matrix addition)
     * Randomly sprinkle in enemies on the remaining empty ('1') tiles
       * Enemy count & type based on F#/difficulty
+    * Generate a nav map -> player spawn
+    * Generate a nav map -> collectible
   VALIDITY:
   For a room to be valid it must:
     * have one '0' tile to spawn the player
@@ -50,6 +53,7 @@ function generator:generate_room(floor_count, player_health, max_health)
   self.player_spawn_position = nil
   self.cols, self.rows = self:get_dimensions(difficulty)
   self.layout = {}
+  self.collectible_position = nil
 
   -- initialise our layout to empty tiles
   for y = 1, self.rows do
@@ -60,8 +64,9 @@ function generator:generate_room(floor_count, player_health, max_health)
   end
 
   -- perform dark rituals
+  -- TODO: add_key MUST come before add_health_pack (or it will get out prioritised)
   local layout =
-    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_health_packs(
+    self:add_spawn():add_exit():apply_templates(difficulty):add_extra_walls(difficulty):add_health_pack(
     difficulty,
     player_health,
     max_health
@@ -69,13 +74,19 @@ function generator:generate_room(floor_count, player_health, max_health)
 
   -- check the level is actually winnable
   if self:validate_floor() then
-    return layout, self:generate_navigation_map(self.player_spawn_position)
+    return layout, {
+      ["player"] = self:generate_navigation_map(self.player_spawn_position),
+      ["collectible"] = self:generate_navigation_map(self.collectible_position)
+    }
   else
     return self:generate_room(floor_count, player_health, max_health)
   end
 end
 
 function generator:generate_navigation_map(start_position)
+  if not start_position then
+    return
+  end
   --[[
       * create empty open set (cells to check)
       * add start to open set
@@ -266,7 +277,9 @@ end
 
 function generator:add_enemies(difficulty)
   local enemy_count = self:get_enemy_count(difficulty)
-  print("Creating " .. enemy_count .. " goblins")
+  print("Creating " .. enemy_count .. " enemies")
+
+  local gremlin_created = false
   for _ = 1, enemy_count do
     local selected_tile = -1
     local selection = nil
@@ -286,14 +299,19 @@ function generator:add_enemies(difficulty)
     end
 
     if attempts <= max_attempts then
-      self.layout[selection.y][selection.x] = 10
+      if not gremlin_created and self.collectible_position then
+        self.layout[selection.y][selection.x] = 11
+        gremlin_created = true
+      else
+        self.layout[selection.y][selection.x] = 10
+      end
     end
   end
 
   return self
 end
 
-function generator:add_health_packs(difficulty, player_health, max_health)
+function generator:add_health_pack(difficulty, player_health, max_health)
   local damage = max_health - player_health
   local continue = true
   -- if damage == 0 then --TODO: UNCOMMENT THIS LOL
@@ -301,11 +319,14 @@ function generator:add_health_packs(difficulty, player_health, max_health)
   -- elseif player_health == 1 then
   --   continue = love.math.random() > 0.5 -- 50% chance to spawn health
   -- else
-  --   continue = love.math.random > 0.8 -- 20% chance to spawn health
+  --   continue = love.math.random > 0.60 -- 40% chance to spawn health
   -- end
   -- if difficulty == "EASIER" then
   --   continue = false
   -- end
+  if self.collectible_position then
+    self.continue = false
+  end
 
   if not continue then
     return self
@@ -326,6 +347,7 @@ function generator:add_health_packs(difficulty, player_health, max_health)
 
   if attempts <= max_attempts then
     self.layout[selection.y][selection.x] = 20
+    self.collectible_position = selection
   end
 
   return self
@@ -432,7 +454,7 @@ function generator:is_sacred_tile(id)
 end
 
 function generator:is_traversable_tile(id)
-  return id == 1 or id == 3 or id == 10 or (id >= 20 and id <= 23)
+  return id == 1 or id == 3 or id == 10 or id == 11 or (id >= 20 and id <= 23)
 end
 
 function generator:get_difficulty(floor_count)
