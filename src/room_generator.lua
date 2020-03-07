@@ -49,7 +49,7 @@ function generator:generate_room(floor_count, player_health, max_health)
   -- local difficulty = "EASIER"
   -- local difficulty = "EASY"
   -- local difficulty = "REGULAR"
-  local difficulty = "HARD"
+  -- local difficulty = "HARD"
   self.player_spawn_position = nil
   self.cols, self.rows = self:get_dimensions(difficulty)
   self.layout = {}
@@ -491,7 +491,7 @@ function generator:get_enemy_count(difficulty)
   elseif difficulty == "REGULAR" then
     return love.math.random(4, 5)
   elseif difficulty == "HARD" then
-    return love.math.random(6, 7)
+    return love.math.random(6, 9)
   end
 end
 
@@ -501,9 +501,9 @@ function generator:get_template_count(difficulty)
   elseif difficulty == "EASY" then
     return love.math.random(6, 8)
   elseif difficulty == "REGULAR" then
-    return love.math.random(13, 20) -- duno yet
+    return love.math.random(13, 18) -- duno yet
   elseif difficulty == "HARD" then
-    return love.math.random(13, 20) -- duno yet
+    return love.math.random(15, 22) -- duno yet
   end
 end
 
@@ -513,9 +513,9 @@ function generator:get_wall_count(difficulty)
   elseif difficulty == "EASY" then
     return love.math.random(3, 5)
   elseif difficulty == "REGULAR" then
-    return love.math.random(8, 10)
+    return love.math.random(8, 12)
   elseif difficulty == "HARD" then
-    return love.math.random(10, 16) -- duno yet
+    return love.math.random(12, 18) -- duno yet
   end
 end
 
@@ -576,6 +576,26 @@ generator["templates"] = {
       {1, 1, 2},
       {1, 1, 1},
       {2, 2, 1}
+    },
+    {
+      {1, 1, 2},
+      {2, 1, 1},
+      {1, 1, 1}
+    },
+    {
+      {1, 1, 1},
+      {2, 1, 1},
+      {2, 1, 2}
+    },
+    {
+      {1, 1, 1},
+      {2, 1, 1},
+      {1, 1, 2}
+    },
+    {
+      {1, 2, 1},
+      {1, 2, 2},
+      {1, 1, 1}
     }
   }
 }

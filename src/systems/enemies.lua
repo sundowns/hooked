@@ -314,7 +314,7 @@ function enemies:action_goblin(e)
   local distance_to_player =
     math.floor(_util.m.distance_between(player_position.x, player_position.y, enemy_position.x, enemy_position.y))
 
-  if distance_to_player <= 8 then
+  if distance_to_player < 8 then
     choices, immediate_option = self:navigate_to(e, "player", choices)
 
     local choice = _util.g.choose_weighted(unpack(choices))
