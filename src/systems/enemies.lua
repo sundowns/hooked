@@ -250,17 +250,86 @@ function enemies:navigate_away_from(entity, map_name, default_choices)
   return choices
 end
 
+function enemies:get_unblocked_options(entity, map_name, default_choices)
+  local entity_pos = entity:get(_components.grid).position
+  local adjusted_pos = Vector(entity_pos.x + 1, entity_pos.y + 1)
+  local current_distance = self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x]
+
+  local choices = default_choices or {}
+  if adjusted_pos.x - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] ~= -1 then
+    table.insert(
+      choices,
+      {
+        "left",
+        5
+      }
+    )
+  end
+  -- RIGHT
+  if
+    adjusted_pos.x + 1 <= #self.navigation_maps[map_name][adjusted_pos.y] and
+      self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] ~= -1
+   then
+    table.insert(
+      choices,
+      {
+        "right",
+        5
+      }
+    )
+  end
+  -- TOP
+  if adjusted_pos.y - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] ~= -1 then
+    table.insert(
+      choices,
+      {
+        "up",
+        5
+      }
+    )
+  end
+  -- BOTTOM
+  if
+    adjusted_pos.y + 1 <= #self.navigation_maps[map_name] and
+      self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] ~= -1
+   then
+    table.insert(
+      choices,
+      {
+        "down",
+        5
+      }
+    )
+  end
+
+  return choices
+end
+
 function enemies:action_goblin(e)
   local choices = {{"wait", 1}}
 
-  choices, immediate_option = self:navigate_to(e, "player", choices)
+  local player = self.PLAYER:get(1)
+  local player_position = player:get(_components.grid).position
+  local enemy_position = e:get(_components.grid).position
+  local distance_to_player =
+    math.floor(_util.m.distance_between(player_position.x, player_position.y, enemy_position.x, enemy_position.y))
 
-  local choice = _util.g.choose_weighted(unpack(choices))
+  if distance_to_player <= 8 then
+    choices, immediate_option = self:navigate_to(e, "player", choices)
 
-  if immediate_option then
-    self:getWorld():emit("attempt_entity_move", e, immediate_option)
-  elseif choice and choice ~= "wait" then
-    self:getWorld():emit("attempt_entity_move", e, choice)
+    local choice = _util.g.choose_weighted(unpack(choices))
+
+    if immediate_option then
+      self:getWorld():emit("attempt_entity_move", e, immediate_option)
+    elseif choice and choice ~= "wait" then
+      self:getWorld():emit("attempt_entity_move", e, choice)
+    end
+  else
+    choices = self:get_unblocked_options(e, "player", choices)
+    local choice = _util.g.choose_weighted(unpack(choices))
+    if choice and choice ~= "wait" then
+      self:getWorld():emit("attempt_entity_move", e, choice)
+    end
   end
 end
 

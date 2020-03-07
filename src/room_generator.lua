@@ -49,7 +49,7 @@ function generator:generate_room(floor_count, player_health, max_health)
   -- local difficulty = "EASIER"
   -- local difficulty = "EASY"
   -- local difficulty = "REGULAR"
-  -- local difficulty = "HARD"
+  local difficulty = "HARD"
   self.player_spawn_position = nil
   self.cols, self.rows = self:get_dimensions(difficulty)
   self.layout = {}
@@ -460,14 +460,14 @@ end
 function generator:get_difficulty(floor_count)
   if floor_count <= 3 then
     return "EASIER"
-  elseif floor_count <= 7 then
+  elseif floor_count <= 8 then
     return "EASY"
-  elseif floor_count <= 13 then
+  elseif floor_count <= 15 then
     return "REGULAR"
-  elseif floor_count <= 20 then
+  else
+    -- elseif floor_count <= 30 then
+    --   return "HARDER"
     return "HARD"
-  -- elseif floor_count <= 30 then
-  --   return "HARDER"
   end
 end
 
@@ -491,7 +491,7 @@ function generator:get_enemy_count(difficulty)
   elseif difficulty == "REGULAR" then
     return love.math.random(4, 5)
   elseif difficulty == "HARD" then
-    return love.math.random(6, 7) -- duno yet
+    return love.math.random(6, 7)
   end
 end
 

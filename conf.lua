@@ -1,5 +1,5 @@
 function love.conf(t)
-    local game_title = "7DRL - sundowns"
+    local game_title = "Hooked - 7DRL"
 
     t.window.title = game_title
     t.window.minwidth = 1280
@@ -15,7 +15,7 @@ function love.conf(t)
         version = "0.1", -- The project version
         author = "Tom Smallridge", -- Your name (string)
         email = "tom@smallridge.com.au", -- Your email (string)
-        description = "7DRL - sundowns", -- The project description (string)
+        description = "Hooked - 7DRL", -- The project description (string)
         homepage = "https://example.com", -- The project homepage (string)
         identifier = "sundowns.7drl", -- The project Uniform Type Identifier (string)
         excludeFileList = {

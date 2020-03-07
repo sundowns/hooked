@@ -1,11 +1,13 @@
-# Love2D ECS project quick-start template
+# Hooked
 
-A template for Love2D ECS projects with a few core libraries:
+A rogue-like game submission for the [7 Day Roguelike Challenge 2020 (7DRL)](https://itch.io/jam/7drl-challenge-2020).
+Navigate through procedural puzzles, combating enemies and racing to the exit with only your trusty hook to aid you. Levels increase in size and complexity the further down you delve.
 
-- [Concord](https://github.com/Tjakka5/Concord) (ECS)
-- [lua-utils](https://github.com/sundowns/lua-utils) (Helper functions)
-- [hump](https://github.com/vrld/hump) (Helper modules)
-  - Timer
-  - Vector
+Made with [LÖVE](https://love2d.org/).
 
-The template includes a few component and systems I use universally, namely 2D motion and simple input handling systems.
+## Team
+
+- Programming / Art - [Tom Smallridge](https://github.com/sundowns)
+- Audio - Joshua Marks
+
+[![Image from Gyazo](https://i.gyazo.com/18a0c021ccee11c70a07ecc413e97294.gif)](https://gyazo.com/18a0c021ccee11c70a07ecc413e97294)
