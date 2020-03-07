@@ -56,6 +56,18 @@ local _DIRECTION_ROTATIONS = {
   ["up"] = math.pi * 2
 }
 
+function get_opposite_direction(direction)
+  if direction == "right" then
+    return "left"
+  elseif direction == "left" then
+    return "right"
+  elseif direction == "up" then
+    return "down"
+  elseif direction == "down" then
+    return "up"
+  end
+end
+
 function direction_to_offset(direction)
   assert(_DIRECTION_OFFSETS[direction], "'direction_to_offset' received invalid direction")
   return _DIRECTION_OFFSETS[direction]:clone()
@@ -333,6 +345,13 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at, direct
   elseif occupant:has(_components.head) then
     self:set_occupancy(position.x, position.y, nil)
     self:getWorld():removeEntity(enemy)
+  elseif occupant:has(_components.enemy) and occupant:has(_components.brain) then
+    local target_brain = occupant:get(_components.brain)
+    if target_brain.type == "goblin" then
+      print("switcheroooo")
+    -- self:move_entity(enemy, direction)
+    -- self:move_entity(occupant, _op)
+    end
   else
     print("enemy hit something unknown")
   end
@@ -574,8 +593,17 @@ function room:validate_direction(entity, direction)
     end
   end
   if entity:has(_components.enemy) then
-    if occupant and (occupant:has(_components.control) or occupant:has(_components.head)) then
-      return true
+    if occupant then
+      if (occupant:has(_components.control) or occupant:has(_components.head)) then
+        return true
+      end
+      if (occupant:has(_components.enemy) and occupant:has(_components.brain) and entity:has(_components.brain)) then
+        local entity_brain = entity:get(_components.brain)
+        local target_brain = occupant:get(_components.brain)
+        if entity_brain.type == "gremlin" and target_brain.type == "goblin" then
+          return true
+        end
+      end
     end
   end
   if entity:has(_components.control) then

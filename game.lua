@@ -16,6 +16,7 @@ end
 
 function game:enter()
   _worlds.game:emit("reset")
+  love.audio.play(_audio["MUSIC"])
   _worlds.game:emit("next_room", _constants.PLAYER_STARTING_HEALTH, 1)
 end
 
@@ -41,7 +42,7 @@ end
 
 function game:keypressed(key, _, _)
   if key == "r" then
-    -- love.event.quit("restart") -- TODO: remove
+    love.event.quit("restart") -- TODO: remove
   elseif key == "f1" then
     _DEBUG = not _DEBUG -- TODO: remove
   end

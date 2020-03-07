@@ -47,7 +47,7 @@ local _opposite_edge = {
 function generator:generate_room(floor_count, player_health, max_health)
   local difficulty = self:get_difficulty(floor_count)
   -- local difficulty = "EASIER"
-  -- local difficulty = "EASY"
+  local difficulty = "EASY"
   -- local difficulty = "REGULAR"
   -- local difficulty = "HARD"
   self.player_spawn_position = nil
@@ -314,16 +314,16 @@ end
 function generator:add_health_pack(difficulty, player_health, max_health)
   local damage = max_health - player_health
   local continue = true
-  if damage == 0 then --TODO: UNCOMMENT THIS LOL
-    continue = love.math.random() > 0.85 -- 15% chance to spawn health
-  elseif player_health == 1 then
-    continue = love.math.random() > 0.4 -- 60% chance to spawn health
-  else
-    continue = love.math.random() > 0.65 -- 35% chance to spawn health
-  end
-  if difficulty == "EASIER" then
-    continue = false
-  end
+  -- if damage == 0 then --TODO: UNCOMMENT THIS LOL
+  --   continue = love.math.random() > 0.85 -- 15% chance to spawn health
+  -- elseif player_health == 1 then
+  --   continue = love.math.random() > 0.4 -- 60% chance to spawn health
+  -- else
+  --   continue = love.math.random() > 0.65 -- 35% chance to spawn health
+  -- end
+  -- if difficulty == "EASIER" then
+  --   continue = false
+  -- end
   if self.collectible_position then
     self.continue = false
   end
