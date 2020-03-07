@@ -67,8 +67,6 @@ function turn:end_player_phase(e)
       local hook_thrower = e:get(_components.hook_thrower)
       if hook_thrower.can_throw then
         self:getWorld():emit("attempt_hook_throw", e, direction)
-      else
-        -- TODO: some sort of error/warning about 1 hook at a time
       end
     end
   end

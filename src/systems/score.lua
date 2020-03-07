@@ -34,6 +34,7 @@ function score:exit_reached(position, player_health)
   self.victory_pulse.is_active = true
   self.victory_pulse.position = position
 
+  _audio["FLOOR_CLEARED"]:play()
   self.timer:tween(self.pulse_lifespan, self.victory_pulse, {alpha = 0}, "out-circ")
 
   self.timer:during(
@@ -57,6 +58,8 @@ end
 
 function score:player_died()
   self.defeat = true
+  _audio["MUSIC"]:stop()
+  _audio["GAME_OVER"]:play()
   self.timer:after(
     5,
     function()

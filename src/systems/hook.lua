@@ -63,6 +63,8 @@ function hook:update(dt)
               self:getWorld():emit("player_got_collectible", inventory.current)
             end
 
+            _audio["HOOK_RETURNED"]:play()
+
             self:getWorld():removeEntity(e)
             self.PLAYER:get(1):get(_components.hook_thrower):reset()
           else
@@ -82,8 +84,7 @@ end
 function hook:throw_hook(direction)
   local player = self.PLAYER:get(1)
   local hook_thrower = player:get(_components.hook_thrower)
-  -- check direction is valid
-
+  _audio["HOOK_MOVED"]:play()
   hook_thrower:throw(direction)
   _assemblages.hook:assemble(
     Concord.entity(self:getWorld()),

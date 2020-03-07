@@ -32,6 +32,7 @@ function health:reduce_health()
   local player = self.PLAYER:get(1)
   local health = player:get(_components.health)
   health:reduce(1)
+  _audio["LOSE_HEALTH"]:play()
   self:getWorld():emit("shake", 0.5, 0.5)
   if health.current <= 0 then
     self:getWorld():emit("player_died")
@@ -41,8 +42,8 @@ end
 function health:player_got_collectible(type)
   if type == "health" then
     local player = self.PLAYER:get(1)
-    local health = player:get(_components.health)
-    health:increase(1)
+    player:get(_components.health):increase(1)
+    _audio["HEALTH_PICKUP"]:play()
   end
 end
 

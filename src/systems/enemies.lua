@@ -116,10 +116,15 @@ function enemies:navigate_to(entity, map_name, default_choices)
   local current_distance = self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x]
 
   local choices = default_choices or {}
+  local adjacent_option = nil
   if
     adjusted_pos.x - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] ~= -1 and
       self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] < current_distance
    then
+    if self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x - 1] == 0 then
+      adjacent_option = "left"
+    end
+
     table.insert(
       choices,
       {
@@ -134,6 +139,9 @@ function enemies:navigate_to(entity, map_name, default_choices)
       self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] ~= -1 and
       self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] < current_distance
    then
+    if self.navigation_maps[map_name][adjusted_pos.y][adjusted_pos.x + 1] == 0 then
+      adjacent_option = "right"
+    end
     table.insert(
       choices,
       {
@@ -147,6 +155,9 @@ function enemies:navigate_to(entity, map_name, default_choices)
     adjusted_pos.y - 1 > 0 and self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] ~= -1 and
       self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] < current_distance
    then
+    if self.navigation_maps[map_name][adjusted_pos.y - 1][adjusted_pos.x] == 0 then
+      adjacent_option = "up"
+    end
     table.insert(
       choices,
       {
@@ -161,6 +172,9 @@ function enemies:navigate_to(entity, map_name, default_choices)
       self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] ~= -1 and
       self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] < current_distance
    then
+    if self.navigation_maps[map_name][adjusted_pos.y + 1][adjusted_pos.x] == 0 then
+      adjacent_option = "down"
+    end
     table.insert(
       choices,
       {
@@ -170,7 +184,7 @@ function enemies:navigate_to(entity, map_name, default_choices)
     )
   end
 
-  return choices
+  return choices, adjacent_option
 end
 
 function enemies:navigate_away_from(entity, map_name, default_choices)
@@ -239,11 +253,13 @@ end
 function enemies:action_goblin(e)
   local choices = {{"wait", 1}}
 
-  choices = self:navigate_to(e, "player", choices)
+  choices, immediate_option = self:navigate_to(e, "player", choices)
 
   local choice = _util.g.choose_weighted(unpack(choices))
 
-  if choice and choice ~= "wait" then
+  if immediate_option then
+    self:getWorld():emit("attempt_entity_move", e, immediate_option)
+  elseif choice and choice ~= "wait" then
     self:getWorld():emit("attempt_entity_move", e, choice)
   end
 end

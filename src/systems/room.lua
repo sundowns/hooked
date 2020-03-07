@@ -248,11 +248,17 @@ function room:move_entity(e, direction)
   -- Fire event if hook was the one that moved:
   if e:has(_components.head) and e:has(_components.chain) then
     self:getWorld():emit("hook_moved", e, old_position)
+    _audio["HOOK_MOVED"]:play()
+  end
+
+  if e:has(_components.enemy) then
+    _audio["ENEMY_MOVED"]:play()
   end
 
   -- Fire event if player was one that moved:
   if e:get(_components.control) then
     self:getWorld():emit("shake", 0.15, 0.15)
+    _audio["PLAYER_MOVED"]:play()
     -- check if chain is out, if so remove last link
     local hook_thrower = e:get(_components.hook_thrower)
     if not hook_thrower.can_throw then
@@ -326,12 +332,11 @@ function room:player_collided_with_something(player, occupant, collided_at, dire
     if inventory and not inventory:is_empty() then
       self:getWorld():emit("player_got_collectible", inventory.current)
     end
+    _audio["HOOK_RETURNED"]:play()
     self:set_occupancy(collided_at.x, collided_at.y, nil)
     self:move_entity(player, direction)
     self:getWorld():removeEntity(occupant)
     player:get(_components.hook_thrower):reset()
-  else
-    print("player collided with some unknown entity") --TODO: nuke
   end
 end
 
@@ -344,6 +349,7 @@ function room:hook_collided_with_something(hook, occupant, collided_at, directio
 
     self:set_occupancy(collided_at.x, collided_at.y, nil)
     occupant:get(_components.enemy):mark_for_deletion()
+    _audio["ENEMY_DEATH"]:play()
     self:getWorld():removeEntity(occupant)
     -- no need to unset occupancy for enemy here
     self:move_entity(hook, direction)
@@ -358,7 +364,12 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at, direct
   if occupant:has(_components.control) then
     self:getWorld():emit("reduce_health")
   elseif occupant:has(_components.head) then
+    local inventory = enemy:get(_components.inventory)
+    if inventory and not inventory:is_empty() then
+      self:spawn_collectible(inventory.current, collided_at)
+    end
     self:set_occupancy(position.x, position.y, nil)
+    _audio["ENEMY_DEATH"]:play()
     self:getWorld():removeEntity(enemy)
   elseif occupant:has(_components.enemy) and occupant:has(_components.brain) then
     local target_brain = occupant:get(_components.brain)
@@ -392,6 +403,7 @@ function room:attempt_hook_throw(e, direction)
           self:spawn_collectible(enemy_inventory.current, attempted_position)
         end
 
+        _audio["ENEMY_DEATH"]:play()
         self:getWorld():removeEntity(occupant)
         self:set_occupancy(attempted_position.x, attempted_position.y, nil)
       end
@@ -399,7 +411,6 @@ function room:attempt_hook_throw(e, direction)
 
     self:getWorld():emit("throw_hook", direction)
   else
-    --TODO: invalid move SFX
     self:getWorld():emit("invalid_directional_action")
   end
 end
