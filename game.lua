@@ -42,9 +42,9 @@ end
 
 function game:keypressed(key, _, _)
   if key == "r" then
-    -- love.event.quit("restart") -- TODO: remove
+    -- love.event.quit("restart")
   elseif key == "f1" then
-    _DEBUG = not _DEBUG -- TODO: remove
+  -- _DEBUG = not _DEBUG
   end
 
   _worlds.game:emit("keypressed", key)

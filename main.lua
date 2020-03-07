@@ -3,6 +3,7 @@ function love.load()
     require("loading")
     require("title")
     require("game")
+    love.mouse.setVisible(false)
     GamestateManager.registerEvents()
     GamestateManager.switch(loading)
 end

@@ -314,7 +314,7 @@ end
 function generator:add_health_pack(difficulty, player_health, max_health)
   local damage = max_health - player_health
   local continue = true
-  if damage == 0 then --TODO: UNCOMMENT THIS LOL
+  if damage == 0 then
     continue = love.math.random() > 0.85 -- 15% chance to spawn health
   elseif player_health == 1 then
     continue = love.math.random() > 0.4 -- 60% chance to spawn health

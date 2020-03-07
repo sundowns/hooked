@@ -1,7 +1,7 @@
 loading = {}
 local splash_displaying = false
 local splash_screen = nil
-local MINIMUM_LOAD_TIME = 1.25 --TODO: 1.25
+local MINIMUM_LOAD_TIME = 1.25
 local load_timer = 0
 
 function loading:init()
@@ -57,5 +57,5 @@ function load_game()
   }
 
   -- GamestateManager.switch(game, {})
-  GamestateManager.switch(title, {floor_count = 0}) -- TODO:
+  GamestateManager.switch(title, {floor_count = 0})
 end
