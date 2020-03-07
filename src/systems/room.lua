@@ -272,6 +272,21 @@ function room:move_entity(e, direction)
   end
 end
 
+function room:switch_entity_positions(first, second)
+  local first_grid = first:get(_components.grid)
+  local second_grid = second:get(_components.grid)
+  if first_grid.is_occupier and second_grid.is_occupier then
+    local first_pos = first_grid.position:clone()
+    local second_pos = second_grid.position:clone()
+
+    first_grid:set_position(second_pos)
+    second_grid:set_position(first_pos)
+
+    self:set_occupancy(first_pos.x, first_pos.y, second)
+    self:set_occupancy(second_pos.x, second_pos.y, first)
+  end
+end
+
 function room:get_tile_at(x, y)
   if not self.grid[y + 1] or not self.grid[y + 1][x + 1] then
     return nil
@@ -348,9 +363,7 @@ function room:enemy_collided_with_something(enemy, occupant, collided_at, direct
   elseif occupant:has(_components.enemy) and occupant:has(_components.brain) then
     local target_brain = occupant:get(_components.brain)
     if target_brain.type == "goblin" then
-      print("switcheroooo")
-    -- self:move_entity(enemy, direction)
-    -- self:move_entity(occupant, _op)
+      self:switch_entity_positions(enemy, occupant)
     end
   else
     print("enemy hit something unknown")
