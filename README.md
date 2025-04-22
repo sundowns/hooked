@@ -1,6 +1,6 @@
 # Hooked
 
-![Hooked](./media/title.PNG)
+![Hooked](./media/title.png)
 
 A rogue-like game submission for the [7 Day Roguelike Challenge 2020 (7DRL)](https://itch.io/jam/7drl-challenge-2020).
 Navigate through procedural puzzles, combating enemies and racing to the exit with only your trusty hook to aid you. Levels increase in size and complexity the further down you delve.
